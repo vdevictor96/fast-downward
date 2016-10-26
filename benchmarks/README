@@ -1,0 +1,39 @@
+Exercise benchmark set, 1 domain from IPC'08, 5 domains from IPC'11.
+For many details on all IPC'11 benchmarks, see:
+
+http://www.plg.inf.uc3m.es/ipc2011-deterministic/DomainsSequential
+
+Here we briefly list our selection, and specifics of the instances we
+selected. ATTENTION: The "huge" instances are intended only for
+running satisficing planners, they are beyond the scalability of
+optimal planning.
+
+-- nomystery: A logistics problem where the truck movements are constrained
+   by fuel consumption. Instances scale by size, small -- medium --
+   large -- huge.
+
+-- parcprinter: The large-scale printing system control application
+   from Chapter 4 of the lecture. Domain and instances provided to the
+   IPC by the developers of that application. Instances scale by size,
+   small -- medium -- large -- huge. The domain file is individualized
+   per instance, so you have to use matching instance/domain files in
+   each call to the planner.
+
+-- scanalyzer: An application involving the control of conveyor belts
+   in a greenhouse. Complicated because moving a belt moves all plants
+   on it, whereas the goal may be to move just one of them. Instances scale
+   by size, small -- medium -- large -- huge.
+
+-- sokoban: The game involving pushing stones through a maze of
+   rooms. Instances scale by size, small -- medium -- large -- huge.
+
+-- transport: Another logistics problem where each truck can load only
+   a restrictive number of packages at the same time, given by the capacity.
+   Instances scale by size, small -- medium -- large -- huge.
+
+-- visitall: A very simple domain where one starts in the middle of a
+   grid, and needs to visit all locations. The
+   domain was designed for the sole purpose of showing the limitations
+   of delete-relaxation heuristics (which do not account for the
+   back-and-forth needed to solve such tasks). Instances scale by
+   size, small -- medium -- large -- huge.
