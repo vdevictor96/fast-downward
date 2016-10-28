@@ -53,10 +53,10 @@ are in the same folder. If for some reason this does not work, you can use
 instead.
 <search-options> usually is of the form --search "parameters", where
 the parameters specify the search type and heuristic that is to be used.
-E.g. a command starting the planner on the small elevators instance with
+E.g. a command starting the planner on the small transport instance with
 weighted A* search (weight of 1) and a blind heuristic looks as follows:
-./fast-downward.py benchmarks/elevators/small.pddl --search
-"wastar(blind(), w=1)"
+  
+./fast-downward.py benchmarks/transport/small.pddl --search "wastar(blind(), w=1)"
 
 To run FD in debug mode, simply run:
 ./fast-downward.py --build debug32 <problem-file> <search-options>
