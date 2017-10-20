@@ -21,7 +21,7 @@
 // to compute an RB plan (e.g. Relaxed Plan Repair requires an disconnected black
 // causal graph). Moreover, your painting should paint at least one variable
 // black. More sophisticated painting strategies will be rewarded with
-// additional bonus points (up to 20 across all projects).
+// additional bonus points.
 //
 // Helpful actions: in get_helpful_actions you should only add those
 // operators of the Red-Black plan to result that are applicable in the state on which

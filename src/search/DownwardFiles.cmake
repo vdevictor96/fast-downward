@@ -115,7 +115,6 @@ fast_downward_plugin(
     heuristics/landmark_heuristic.cc
     heuristics/merge_and_shrink_heuristic.cc
     heuristics/pattern_database_heuristic.cc
-    pruning/dominance.cc
     pruning/strong_stubborn_sets.cc
 #    DEPENDS BOOST
 )

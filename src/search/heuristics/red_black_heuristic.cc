@@ -18,11 +18,18 @@ RedBlackHeuristic::RedBlackHeuristic(const Options &opts)
 void RedBlackHeuristic::initialize()
 {
     cout << "Initializing red-black heuristic..." << endl;
+    //TODO implementation: decide painting 
 }
 
 int RedBlackHeuristic::compute_heuristic(const State &/*state*/)
 {
     // TODO implementation
+
+    // 1) Call FFHeuristic to obtain a relaxed plan (you can add a protected method in
+    // FFHeuristic to do this)
+    
+    // 2) Extend the relaxed plan with additional actions that achieve the value of black
+    // preconditions
     return -1;
 }
 
