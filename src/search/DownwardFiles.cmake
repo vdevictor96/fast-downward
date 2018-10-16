@@ -104,6 +104,7 @@ fast_downward_plugin(
     weighted_astar.cc
     enforced_hill_climbing_search.cc
     iterated_search.cc
+    linear_program.cc
     heuristics/blind_heuristic.cc
     heuristics/goal_count_heuristic.cc
     heuristics/max_heuristic.cc
@@ -115,7 +116,10 @@ fast_downward_plugin(
     heuristics/landmark_heuristic.cc
     heuristics/merge_and_shrink_heuristic.cc
     heuristics/pattern_database_heuristic.cc
+    heuristics/potential_heuristic.cc
+    heuristics/operator_counting_heuristic.cc
     pruning/strong_stubborn_sets.cc
+    pruning/dominance.cc
 #    DEPENDS BOOST
 )
 

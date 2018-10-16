@@ -40,3 +40,17 @@ if(PLUGIN_BOOST_ENABLED)
     include_directories(${Boost_INCLUDE_DIR})
     target_link_libraries(downward ${Boost_LIBRARIES})
 endif()
+
+option(
+  USE_LP
+  "Compile with support for all LP solvers installed on this system."
+  TRUE)
+
+if (USE_LP)
+    find_package(Soplex)
+    if(SOPLEX_FOUND)
+        add_definitions("-D USE_LP")
+        include_directories(SYSTEM ${SOPLEX_INCLUDE_DIRS})
+        target_link_libraries(downward ${SOPLEX_LIBRARIES})
+    endif()
+endif()
