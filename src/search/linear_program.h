@@ -1,6 +1,54 @@
 #ifndef LINEAR_PROGRAM_H
 #define LINEAR_PROGRAM_H
 
+/* Linear Program Interface */
+
+/* Usage example:
+ * // Constructing the LP
+ * // Maximize
+ * //   10x1 - 2x2
+ * // Subject To
+ * //   x0 + 5x2 <= 10
+ * //   3x0 - x1 >= -5
+ * // Bounds
+ * //   0 <= x0 <= 10
+ * //   0 <= x1 <= 10
+ * //   0 <= x2 <= 10
+ * // End
+ * 
+ * // constructing lp variables and constraints
+ * std::vector<lp::LPVariable> variables;
+ * std::vector<lp::LPConstraint> constraints;
+ * variables.push_back(lp::LPVariable(0, 0, 10));  // x0
+ * variables.push_back(lp::LPVariable(10, 0, 10)); // x1
+ * variables.push_back(lp::LPVariable(-2, 0, 10)); // x2
+ * constraints.push_back(lp::LPConstraint(-lp::INFTY, 10)); // -infinity <= x0 + 5x2 <= 10
+ * constraints[0].insert(0, 1); // x0
+ * constraints[0].insert(2, 5); // 5x2
+ * constraints.push_back(lp::LPConstraint(-5, lp::INFTY)); // -5 <= 3x0 - x1 <= infinity
+ * constraints[1].insert(0, 3);  // 3x0
+ * constraints[1].insert(1, -1); // -x1
+ *
+ * // creating linear program object
+ * lp::LinearProgram linear_program(lp::LPObjectiveSense::MAXIMIZE,
+ *                                  variables,
+ *                                  constraints);
+ *
+ * // Writing the linear program to file 'linprog.lp'
+ * linear_program.dump_to_file("linprog.lp");
+ *
+ * // solving the lp
+ * linear_program.solve();
+ *
+ * // printing the objective value
+ * std::cout << linear_program.get_objective_value() << std::endl;
+ *
+ * // getting and printing the solution vector
+ * std::vector<double> solution = linear_program.extract_solution();
+ * std::cout << "x0=" << solution[0] << "; x1=" << solution[1] << "; x2=" << solution[2] << std::endl;
+ *
+ */
+
 #include <vector>
 
 #if USE_LP

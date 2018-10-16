@@ -25,6 +25,8 @@ PotentialHeuristic::initialize()
 {
     std::cout << "Initializing potential heuristic..." << std::endl;
 
+    /* For a linear program usage example, see ../linear_program.h */
+
     /* Generate LP variables and constraints */
     // std::vector<lp::LPVariable> variables;
     // std::vector<lp::LPConstraint> constraints;
