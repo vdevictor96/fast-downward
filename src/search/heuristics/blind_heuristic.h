@@ -11,7 +11,6 @@
 
 class BlindHeuristic : public Heuristic
 {
-    int min_operator_cost;
 protected:
     virtual void initialize();
     virtual int compute_heuristic(const State &state);
