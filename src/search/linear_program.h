@@ -71,9 +71,9 @@ class LPConstraint {
 public:
     LPConstraint(double lower_bound, double upper_bound);
     LPConstraint(LPConstraint&& constraint);
-    LPConstraint(const LPConstraint& constraint) = default;
-    LPConstraint& operator=(const LPConstraint& c) = default;
-    LPConstraint& operator=(LPConstraint&& c) = default;
+    LPConstraint(const LPConstraint& constraint);
+    LPConstraint& operator=(const LPConstraint& c);
+    LPConstraint& operator=(LPConstraint&& c);
 
     const std::vector<int> &get_variables() const {return variables;}
     const std::vector<double> &get_coefficients() const {return coefficients;}

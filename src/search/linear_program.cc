@@ -16,6 +16,31 @@ LPConstraint::LPConstraint(LPConstraint&& constraint)
     , upper_bound(std::move(constraint.upper_bound))
 {}
 
+LPConstraint::LPConstraint(const LPConstraint& constraint)
+    : variables(constraint.variables)
+    , coefficients(constraint.coefficients)
+    , lower_bound(constraint.lower_bound)
+    , upper_bound(constraint.upper_bound)
+{}
+
+LPConstraint& LPConstraint::operator=(const LPConstraint& c)
+{
+    variables = c.variables;
+    coefficients = c.coefficients;
+    lower_bound = c.lower_bound;
+    upper_bound = c.upper_bound;
+    return *this;
+}
+
+LPConstraint& LPConstraint::operator=(LPConstraint&& c)
+{
+    variables = std::move(c.variables);
+    coefficients = std::move(c.coefficients);
+    lower_bound = std::move(c.lower_bound);
+    upper_bound = std::move(c.upper_bound);
+    return *this;
+}
+
 void LPConstraint::clear() {
     variables.clear();
     coefficients.clear();
