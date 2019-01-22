@@ -53,7 +53,7 @@ int
 PotentialHeuristic::compute_heuristic(const State& /*state*/)
 {
     /* TODO */
-    return 0;
+    return DEAD_END;
 }
 
 static Heuristic*
