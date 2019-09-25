@@ -9,19 +9,28 @@ Linux: Before you can compile FD, you need to have cmake, python and either
 g++ or clang installed. To compile FD, go to the root FD directory and run
 ./build.py. You can run ./build.py debug32 to build in debug mode.
 
-Windows: You need to install CMake (https://cmake.org/download/) to build
-Visual Studio project files for FD. Run the CMake GUI, then select the
-<FD>/src and <FD>/builds directories as source and build directory. Then
-you have to click the "Configure" button and select your Visual Studio
-version (Visual Studio 2015 is called Visual Studio 14, the version number
-does not match the year). We recommend to use the 32 bit version, otherwise
-you will have to set the ALLOW_64BIT flag to True. Press Finish and then
-click on the "Generate" button. You can find the generated Visual Studio
-project files in <FD>/builds. You can build the planner by building the
-fast-downward.sln solution.
-Note: There is an alternative way to build the project for windows using
+Windows (Visual Studio): First you need to download and install Visual Studio
+(see https://visualstudio.microsoft.com/). The free Community Edition will be
+sufficient for this course. When installing Visual Studio, make sure to select
+the "Desktop development with C++" workload to install the tools required to
+build C++ projects. You also need to install CMake (download the installer at
+https://cmake.org/download/) to build Visual Studio project files for FD. Run
+the CMake GUI, then select the <FD>/src directory as the source directory, and
+set the build directory to <FD>/builds. Then click the "Configure" button and
+select your Visual Studio version (e.g. Visual Studio 16 2019). We recommend
+you set the Optional platform for generator to Win32 before pressing "Finish".
+(Otherwise, you will receive an error message, and have to tick the box next
+to ALLOW_64_BIT and click "Configure" again.) Now click on the "Generate"
+button. You can find the generated Visual Studio project files in <FD>/builds.
+You can build the planner by building the fast-downward.sln solution. Keep in
+mind that when you use the fast_downward.py script to run the planner, by
+default it will look for a release build, while the default in Visual Studio
+is a debug build. The most important subproject is "downward", which contains
+the code that you will work with.
+
+Note: There is an alternative way to build the project for Windows using
 the build.py script. The script must be run in a Visual Studio developer
-console. For Visual Studio 2015, you have to start a shell (cmd) and then
+console. For Visual Studio 2019, you have to start a shell (cmd) and then
 call the VsDevCmd.bat script which should be located in your Visual Studio
 directory at <Visual Studio directory>\Common7\Tools\VsDevCmd.bat. However,
 we did not test this method and cannot provide support if it does not work.
@@ -55,7 +64,7 @@ instead.
 the parameters specify the search type and heuristic that is to be used.
 E.g. a command starting the planner on the small transport instance with
 weighted A* search (weight of 1) and a blind heuristic looks as follows:
-  
+
 ./fast-downward.py benchmarks/transport/small.pddl --search "wastar(blind(), w=1)"
 
 To run FD in debug mode, simply run:
