@@ -192,8 +192,8 @@ TECHNICAL REMARKS
 Feel free to use the boost library in your project. To enable boost in your
 build you only need to uncomment the "#    DEPENDS BOOST" line in the
 <FD>/src/search/DownwardFiles.cmake file (line 118). The boost installation
-on our servers is version 1.53, so make sure that your code is compatible
+on our servers is version 1.69, so make sure that your code is compatible
 with it when using a newer version of boost.
 
-For our tests your code will be built using g++ version 4.8.5, please ensure
+For our tests your code will be built using g++ version 8.3.1, please ensure
 that your project compiles with that version of g++.
