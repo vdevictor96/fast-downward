@@ -7,7 +7,7 @@ COMPILING FD
 
 Linux: Before you can compile FD, you need to have cmake, python and either
 g++ or clang installed. To compile FD, go to the root FD directory and run
-./build.py. You can run ./build.py debug32 to build in debug mode.
+./build.py. You can run ./build.py debug to build in debug mode.
 
 Windows (Visual Studio): First you need to download and install Visual Studio
 (see https://visualstudio.microsoft.com/). The free Community Edition will be
@@ -17,16 +17,14 @@ build C++ projects. You also need to install CMake (download the installer at
 https://cmake.org/download/) to build Visual Studio project files for FD. Run
 the CMake GUI, then select the <FD>/src directory as the source directory, and
 set the build directory to <FD>/builds. Then click the "Configure" button and
-select your Visual Studio version (e.g. Visual Studio 16 2019). We recommend
-you set the Optional platform for generator to Win32 before pressing "Finish".
-(Otherwise, you will receive an error message, and have to tick the box next
-to ALLOW_64_BIT and click "Configure" again.) Now click on the "Generate"
-button. You can find the generated Visual Studio project files in <FD>/builds.
-You can build the planner by building the fast-downward.sln solution. Keep in
-mind that when you use the fast_downward.py script to run the planner, by
-default it will look for a release build, while the default in Visual Studio
-is a debug build. The most important subproject is "downward", which contains
-the code that you will work with.
+select your Visual Studio version (e.g. Visual Studio 16 2019). Now click on the
+"Generate" button. You can find the generated Visual Studio project files in
+<FD>/builds. You can build the planner by building the fast-downward.sln
+solution. Keep in mind that when you use the fast_downward.py script to run the
+planner, by default it will look for a release build, while the default in
+Visual Studio is a debug build. The most important subproject in the
+fast-downward solution is "downward", which contains the code that you will work
+with.
 
 Note: There is an alternative way to build the project for Windows using
 the build.py script. The script must be run in a Visual Studio developer
@@ -68,7 +66,7 @@ weighted A* search (weight of 1) and a blind heuristic looks as follows:
 ./fast-downward.py benchmarks/transport/small.pddl --search "wastar(blind(), w=1)"
 
 To run FD in debug mode, simply run:
-./fast-downward.py --build debug32 <problem-file> <search-options>
+./fast-downward.py --build debug <problem-file> <search-options>
 
 The driver script automatically takes care of first running translate
 (resulting in a file "output.sas", the result of grounding the task), then

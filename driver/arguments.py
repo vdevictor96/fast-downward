@@ -157,14 +157,14 @@ def parse_args():
         help="run a config with an alias (e.g. seq-sat-lama-2011)")
     parser.add_argument(
         "--build",
-        help="BUILD can be a predefined build name like release32 "
-            "(default), debug32, release64 and debug64, a custom build "
+        help="BUILD can be a predefined build name like release "
+            "(default), debug, a custom build "
             "name, or the path to a directory holding the planner "
             "binaries. The driver first looks for the planner binaries "
             "under 'BUILD'. If this path does not exist, it tries the "
             "directory '<repo>/builds/BUILD/bin', where the build "
             "script creates them by default.",
-        default="release32")
+        default="release")
     parser.add_argument(
         "--plan-file", metavar="FILE", default="sas_plan",
         help="write plan(s) to FILE{.1,.2,...} (default: %(default)s)")
