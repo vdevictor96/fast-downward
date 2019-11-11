@@ -88,12 +88,4 @@ def run_search(args):
             "search needs --alias, --portfolio, or search options")
     if "--help" not in args.search_options:
         args.search_options.extend(["--plan-file", args.plan_file])
-    try:
-        call_component(
-            search, args.search_options,
-            stdin=args.search_input)
-    except subprocess.CalledProcessError as err:
-        return err.returncode
-    else:
-        return 0
-
+    call_component(search, args.search_options, stdin=args.search_input)
