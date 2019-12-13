@@ -43,7 +43,7 @@ private:
 
     // the following four variables have to be kept up-to-date during the search
 
-    // the state that is to be expanded next
+    // the current root state of the BFS exploration
     State current_state; // is initialized to the initial state
 
     // h-value of current_state
