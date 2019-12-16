@@ -133,8 +133,22 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
 
     }
 
+    assert(is_plan(plan));
     set_plan(plan);
     return SOLVED;
+}
+
+auto EnforcedHillClimbingSearch::is_plan(const Plan &plan) -> bool
+{
+    auto state = g_initial_state();
+    for (const auto *op : plan) {
+        // verify that all operators in the plan are applicable
+        if (!op->is_applicable(state))
+            return false;
+        state = g_state_registry->get_successor_state(state, *op);
+    }
+    // verify that the final state is a goal state
+    return test_goal(state);
 }
 
 void EnforcedHillClimbingSearch::statistics() const

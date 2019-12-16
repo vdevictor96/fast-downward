@@ -66,6 +66,9 @@ private:
     // it will make the required calls to the heuristic and output some statistics
     void evaluate(const State &parent, const Operator *op, const State &state);
 
+    // test if the given operator sequence is a plan for the initial state
+    static auto is_plan(const Plan &plan) -> bool;
+
 protected:
     virtual void initialize();
 
