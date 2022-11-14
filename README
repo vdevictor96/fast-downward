@@ -1,0 +1,198 @@
+This document contains information on how to compile and run FD, and
+also some issues concerning the implementation of heuristics that
+occurred in previous years.
+
+
+COMPILING FD
+
+Linux: Before you can compile FD, you need to have cmake, python and either
+g++ or clang installed. To compile FD, go to the root FD directory and run
+./build.py. You can run ./build.py debug to build in debug mode.
+
+Windows (Visual Studio): First you need to download and install Visual Studio
+(see https://visualstudio.microsoft.com/). The free Community Edition will be
+sufficient for this course. When installing Visual Studio, make sure to select
+the "Desktop development with C++" workload to install the tools required to
+build C++ projects. You also need to install CMake (download the installer at
+https://cmake.org/download/) to build Visual Studio project files for FD. Run
+the CMake GUI, then select the <FD>/src directory as the source directory, and
+set the build directory to <FD>/builds. Then click the "Configure" button and
+select your Visual Studio version (e.g. Visual Studio 16 2019). Now click on the
+"Generate" button. You can find the generated Visual Studio project files in
+<FD>/builds. You can build the planner by building the fast-downward.sln
+solution. The most important subproject in the fast-downward solution is
+"downward", which contains the code that you will work with. Keep in mind that
+when you use the fast_downward.py script to run the planner, by default it will
+look for a release build, while the default in Visual Studio is a debug build.
+Also, in Windows you will have to write "python fast-downward.py" instead of
+"./fast-downward.py" to run the driver script.
+
+Note: There is an alternative way to build the project for Windows using
+the build.py script. The script must be run in a Visual Studio developer
+console. For Visual Studio 2019, you have to start a shell (cmd) and then
+call the VsDevCmd.bat script which should be located in your Visual Studio
+directory at <Visual Studio directory>\Common7\Tools\VsDevCmd.bat. However,
+we did not test this method and cannot provide support if it does not work.
+
+
+RUNNING FD
+
+FD performs search on a finite-domain representation of the given
+planning tasks. In order to get such a representation, before the
+actual search the translation takes place. "translate" will translate
+the PDDL input to FDR, while "preprocess" performs some
+pre-calculations (such as calculation of the causal graph and the
+domain transition graph etc.). These two programs need not be changed
+for this course.
+
+Finally, the actual search is implemented in the directory
+<FD>/src/search. The directory contains a skeleton for the heuristics 
+and other methods you will be required to implement.
+
+To run FD, you can use the python driver script <FD>/fast-downward.py
+with the following syntax:
+./fast-downward.py <problem-file> <search-options>
+where <problem-file> is the path to the *.pddl file of the problem that you
+want the planner to solve. Note that to precompute the planning task, FD
+also needs the corresponding *.pddl domain file. The script automatically
+detects which domain file it should use, if the domain and problem file
+are in the same folder. If for some reason this does not work, you can use
+./fast-downward.py <domain-file> <problem-file> <search-options>
+instead.
+<search-options> usually is of the form --search "parameters", where
+the parameters specify the search type and heuristic that is to be used.
+E.g. a command starting the planner on the small transport instance with
+weighted A* search (weight of 1) and a blind heuristic looks as follows:
+
+./fast-downward.py benchmarks/transport/small.pddl --search "wastar(blind(), w=1)"
+
+To run FD in debug mode, simply run:
+./fast-downward.py --build debug <problem-file> <search-options>
+
+The driver script automatically takes care of first running translate
+(resulting in a file "output.sas", the result of grounding the task), then
+running preprocess (taking "output.sas" as input and resulting in a file
+"output", the result of the further preprocessing steps), and finally
+running the planner with the corresponding parameters.
+
+
+ADDING A NEW HEURISTIC
+
+In this course, you will typically be asked to implement new
+heuristics to this stripped version of FastDownward. You can have a
+look at the blind heuristic as a basis (in
+<FD>/src/search/heuristics/blind_heuristic.{cc,h}). The blind heuristic
+first determines the smallest action cost (in the constructor of this
+heuristic), and later on returns a value that is either 0 (in case of
+goal states) or the determined smallest action cost (in all other
+cases). Note that, since we are only using uniform-cost domains, the
+smallest action cost will always be 1.
+
+If you want to add additional files to your project, make sure to add them to
+the list of planner files in the <FD>/src/search/DownwardFiles.cmake file (in
+the list of files for the planner component starting at line 94). If you want
+to add .cc and .h files with identical names, you only need to add the .cc
+file to the list and the .h file will be found automatically.
+
+
+
+Use of the heuristic within the search code:
+
+Every heuristic has two important functions:
+ - initialize, and
+ - compute_heuristic
+"initialize" will be called only once, at the very beginning of the
+search, and should precalculate whatever makes sense here.
+"compute_heuristic" takes as argument a state and is called once for
+each state. This should return the actual heuristic value of the given
+state.
+
+
+IMPLEMENTATION ISSUES
+
+All globally defined variables can be found in globals.{cc,h}. Several
+of those are important for the heuristic implementations:
+ - g_variable_domain stores the domain sizes of all variables, i.e.,
+   for 0 <= i < g_variable_domain.size(), g_variable_domain[i] gives
+   the number of values of the respective variable.
+ - For each variable, g_fact_names[i][j] stores the string (e.g.,
+   "Atom in-city(truck01, adelaide)") representing value j of variable
+   i.
+ - g_goal is a vector of pairs. The first element of such a pair is
+   the index of a variable, the second its value. Only variables that
+   are mentioned in the goal description in PDDL will be captured in
+   this vector. A state is considered a goal state if all variables
+   mentioned in the goal have the value that is stored in g_goal for
+   that variable.
+ - g_operators is a vector of operators. More on these in the next
+   section
+ - test_goal(state) is a global function that takes a state and
+   returns whether or not it satisfies the goal condition.
+
+
+Concerning the operators:
+
+An operator stores
+ - the variables that are queried in the precondition (vector
+   "preconditions")
+ - the variables that are changed in the effect of the operator (vector
+   "effects")
+Assume you have an operator op.
+Use "const vector<Condition> &preconditions = op.get_preconditions()"
+to get a reference to the precondition vector of operator op.
+(Note: omitting the "&" will create a copy -- please make sure to use
+references to vectors, maps, etc. whenever possible; copying the entire
+content will make your program extremely inefficient). preconditions[i].var
+is then the index of the i-th variable stored in precondition, and
+preconditions[i].val its required value in the operator's precondition
+
+Similarly, "const vector<Effect> &effects = op.get_effects()" gives
+you a reference to the effects vector. Here, effects[i].var is again
+the index of the i-th variable stored in effects, while effects[i].val is
+the value the variable will take when applying the effect.
+
+
+Concerning the heuristic:
+
+ - In some cases you will have to implement a special treatment of the
+   value infinity. For example, both the minimization and the
+   maximization in the hmax/hadd equations may contain recursive calls whose
+   value is infinite; the minimization may be over an empty set and
+   thus evaluate to infinity itself. As you never know how large
+   action costs etc. may become, it is *not* possible to implement
+   infinity by a large constant. Instead, implement a special case
+   treatment. Make sure that treatment is correct (in particular) in
+   minimization and maximization (standard implementations may not
+   treat your encoding of infinity in the way intended).  
+ - In case the heuristic value computed is infinity, you should
+   "return DEAD_END;".
+ - In the calculation of the heuristic value of a given state, you can
+   access the values of the variables via state[i] (this is the value
+   of the variable with index i). Each state contains all variables,
+   and the variables are ordered in the same way as in
+   g_variable_names etc. (in globals.cc).
+   
+   
+DEBUGGING
+
+As already mentioned above, you can compile and run Fast Downward in debug
+mode. This enables all assertions in the code as well as all code snippets
+guarded by:
+#ifndef NDEBUG
+[..]
+#endif
+You can (and should) use both possibilities to check that your code is 
+indeed doing what it should do. In our experiments, we will execute FD
+in standard mode, so such assertions and tests will not influence performance.
+
+
+TECHNICAL REMARKS
+
+Feel free to use the boost library in your project. To enable boost in your
+build you only need to uncomment the "#    DEPENDS BOOST" line in the
+<FD>/src/search/DownwardFiles.cmake file (line 118). The boost installation
+on our servers is version 1.69, so make sure that your code is compatible
+with it when using a newer version of boost.
+
+For our tests your code will be built using g++ version 8.3.1, please ensure
+that your project compiles with that version of g++.
