@@ -8,6 +8,7 @@
 
 
 using namespace std;
+int no_goal;
 
 GoalCountHeuristic::GoalCountHeuristic(const Options &opts)
     : Heuristic(opts)
@@ -48,4 +49,4 @@ static Heuristic *_parse(OptionParser &parser)
 
 static Plugin<Heuristic> _plugin("gc", _parse);
 
-int no_goal=0;
+
