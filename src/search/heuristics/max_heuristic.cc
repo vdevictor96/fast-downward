@@ -60,11 +60,13 @@ int MaxHeuristic::compute_heuristic(const State &state) {
             if (applicable) {
                 const vector<Effect> &effects = g_operators[i].get_effects();
                 // for (const Effect &eff : (it)->get_effects()) {
+                size_t possible_action_cost = g_operators[i].get_cost() + previous_cost;
                 for (size_t e = 0; e < effects.size(); e++) {
-                    if (iterative_costs[effects[e].var][effects[e].val] == INT16_MAX) {
+                    if ( possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
+                        // iterative_costs[effects[e].var][effects[e].val] == INT16_MAX ||
                         state_changed = true;
                         // iterative_costs[effects[e].var][effects[e].val] = (it)->get_cost() + previous_cost; //TODO elemento en iterative costs que este en las precondiciones ;
-                        iterative_costs[effects[e].var][effects[e].val] = g_operators[i].get_cost() + previous_cost; //TODO elemento en iterative costs que este en las precondiciones ;
+                        iterative_costs[effects[e].var][effects[e].val] = possible_action_cost; //TODO elemento en iterative costs que este en las precondiciones ;
                     }
                     
                 }
