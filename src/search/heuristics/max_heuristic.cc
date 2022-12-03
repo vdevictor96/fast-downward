@@ -18,11 +18,6 @@ MaxHeuristic::MaxHeuristic(const Options &opts)
     : Heuristic(opts) {
 }
 
-struct compare {
-    bool operator() (const pair<int, int>& lhs, const pair<int, int>& rhs) const {
-        return (lhs.first > rhs.first);
-    }
-};
 
 void MaxHeuristic::initialize() {
     cout << "Initializing max heuristic..." << endl; 
@@ -31,7 +26,6 @@ void MaxHeuristic::initialize() {
 
 
 vector<int> counter(g_operators.size());
-const State& init_state = g_initial_state();
 map <pair<int, int>, int> fac_mem_layer;
 vector <int> action_mem_layer(g_operators.size());
 queue <pair<int, int>> fact_schedule;
@@ -41,7 +35,7 @@ int req_goal = g_goal.size();
 vector <int> goal_mem_layer (g_goal.size());
 
 
-static void goal_fact(pair<int, int>& fact) {
+static void goal_fact(pair<int, int> fact) {
     for (int g_ind = 0; g_ind < g_goal.size(); ++g_ind) {
         if (g_goal[g_ind].first == fact.first && g_goal[g_ind].second == fact.second) {
             goal_mem_layer[g_ind] = timestep;
@@ -50,13 +44,13 @@ static void goal_fact(pair<int, int>& fact) {
     }
 }
 
-static void init_Membership() {
+static void init_Membership(const State &state) {
     fill(counter.begin(), counter.end(), 0); /*Init counter for each action with 0*/
   
 
     for (int i = 0; i < g_variable_domain.size(); ++i) {
         for (int j = 0; j < g_variable_domain[i]; ++j) {
-            if (init_state[i] == j) {
+            if (state[i] == j) {
 
                 goal_fact(make_pair(i,j));
 
@@ -132,7 +126,7 @@ static bool doStep() {
 
 int MaxHeuristic::compute_heuristic(const State &state) {
     // TODO implementation
-    init_Membership();
+    init_Membership(state);
     bool temp = doStep();
     while (temp) {
         temp = doStep();
