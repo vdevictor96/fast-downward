@@ -32,7 +32,6 @@ int GoalCountHeuristic::compute_heuristic(const State &state)
             g_satisfied++;
         }
     }
-
     return no_goal-g_satisfied;
 }
 
