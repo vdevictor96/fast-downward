@@ -19,8 +19,8 @@ void MaxHeuristic::initialize() {
 
 
 int MaxHeuristic::compute_heuristic(const State &state) {
-     /* Init vector with all the variable values with infinite */
-    std::vector<std::vector<size_t> > iterative_costs;
+    /* Init vector with all the variable values with infinite */
+    std::vector<std::vector<int> > iterative_costs;
     iterative_costs.resize(g_variable_domain.size());
     for (unsigned var = 0; var < g_variable_domain.size(); var++) {
         iterative_costs[var].resize(g_variable_domain[var], INT16_MAX);
@@ -35,23 +35,13 @@ int MaxHeuristic::compute_heuristic(const State &state) {
         for (size_t i = 0; i < g_operators.size(); i++) {
             const vector<Condition> &preconditions = g_operators[i].get_preconditions();
             bool applicable = true;
-            size_t previous_cost = 0;
+            int previous_cost = 0;
             for (size_t p = 0; p < preconditions.size(); p++) {
-            // for (const Condition &pre : (it)->get_preconditions()) {
-                // if (iterative_costs[pre.var][pre.val] == INT16_MAX) {
-                //     applicable = false;
-                //     break;
-                // } else {
-                //     size_t cost = iterative_costs[pre.var][pre.val];
-                //     if (cost > previous_cost) {
-                //         previous_cost = cost;
-                //     }
-                // }
                 if (iterative_costs[preconditions[p].var][preconditions[p].val] == INT16_MAX) {
                     applicable = false;
                     break;
                 } else {
-                    size_t cost = iterative_costs[preconditions[p].var][preconditions[p].val];
+                    int cost = iterative_costs[preconditions[p].var][preconditions[p].val];
                     if (cost > previous_cost) {
                         previous_cost = cost;
                     }
@@ -60,9 +50,9 @@ int MaxHeuristic::compute_heuristic(const State &state) {
             if (applicable) {
                 const vector<Effect> &effects = g_operators[i].get_effects();
                 // for (const Effect &eff : (it)->get_effects()) {
-                size_t possible_action_cost = g_operators[i].get_cost() + previous_cost;
+                int possible_action_cost = g_operators[i].get_cost() + previous_cost;
                 for (size_t e = 0; e < effects.size(); e++) {
-                    if ( possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
+                    if (possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
                         // iterative_costs[effects[e].var][effects[e].val] == INT16_MAX ||
                         state_changed = true;
                         // iterative_costs[effects[e].var][effects[e].val] = (it)->get_cost() + previous_cost; //TODO elemento en iterative costs que este en las precondiciones ;
@@ -70,33 +60,17 @@ int MaxHeuristic::compute_heuristic(const State &state) {
                     }
                     
                 }
-                // it = g_operators.erase(it);
-            } else {
-                // it++;
             }
         }
     }
-    // if (!g_operators.empty()) {
-    //     // Not all actions are applicable
-    //     return false;
-    // }
-    // check if all goal facts are reached:
-    size_t max_cost = 0;
-    bool reached = false;
-    for (size_t g = 0; g < g_goal.size(); ++g) {
-        size_t cost = iterative_costs[g_goal[g].first][g_goal[g].second];
-        if (cost != INT16_MAX) {
-            reached = true;
-            if (cost > max_cost) {
+    int max_cost = INT16_MIN;
+    for (size_t g = 0; g < g_goal.size(); g++) {
+        int cost = iterative_costs[g_goal[g].first][g_goal[g].second];
+        if (cost > max_cost) {
             max_cost = cost;
-            }
         }
     }
-    if (reached) {
-        return max_cost;
-    } else {
-        return -1;
-    }
+   return max_cost;
 }
 
 
