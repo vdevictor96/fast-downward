@@ -28,7 +28,15 @@ struct hashFunction
     size_t operator()(const pair<int,
         int>& x) const
     {
-        return (x.first + x.second)^(x.first*x.second+1);
+        return (x.first + x.second)^((x.first+1)*(x.second+1));
+    }
+};
+struct hashGoal
+{
+    size_t operator()(const pair<int,
+        int>& x) const
+    {
+        return x.first;
     }
 };
 struct compare
@@ -43,8 +51,9 @@ struct compare
         return false;
     }
 };
-unordered_set <pair<int, int>, hashFunction,compare> goal_set;
+unordered_set <pair<int, int>, hashGoal,compare> goal_set;
 unordered_set <pair<int, int>, hashFunction,compare> fact_set;
+vector <vector<bool>> fact_vector;
 
 
 MaxHeuristic::MaxHeuristic(const Options& opts)
@@ -58,7 +67,7 @@ void MaxHeuristic::initialize() {
     cout << "goal no. " << g_goal.size() << endl;
     for (int i = 0; i < g_goal.size(); ++i) {
         goal_set.insert(g_goal[i]);
-        //cout << "problem goal " <<g_goal[i].first <<" " << g_goal[i].second << endl;
+        //cout << "goal facts " <<g_goal[i].first <<" " << g_goal[i].second << endl;
     }
 
 
@@ -79,6 +88,8 @@ static void init_layers_and_counter(const State& state) {
         operator_queue.push(g_operators[i]);
     }*/
 
+
+
     for (int i = 0; i < g_variable_domain.size();i++) {
         fact_schedule.push(make_pair(i, state[i]));
         fact_set.insert(make_pair(i, state[i]));
@@ -87,6 +98,7 @@ static void init_layers_and_counter(const State& state) {
             //cout <<"init goal facts" << i<<" " << state[i] << endl;
             req_goal--;
         }
+        //cout << "Init facts" << i << " " << state[i] << endl;
     }
 
 }
@@ -95,12 +107,14 @@ static void init_layers_and_counter(const State& state) {
 static void small_iteration() {
 
     int schedule_size = fact_schedule.size();
+    unordered_set <pair<int, int>,hashFunction> iteration_set;
+    
    
     while (schedule_size!=0) {
         schedule_size--;
         pair <int, int >fact = fact_schedule.front();
         fact_schedule.pop();
-        //cout << "fact in schedule " << fact.first << " " << fact.second << endl;
+        //cout << "current fact " << fact.first << " " << fact.second << endl;
 
         /* Iterate over all actions preconditions*/
         /*
@@ -119,32 +133,42 @@ static void small_iteration() {
                         if (preconditions[m].var == fact.first && preconditions[m].val == fact.second) {
                             counter[op]++;
                             //cout << "fact in precondition " << fact.first << " " << fact.second <<endl ;
-                            //cout << "precondition " << preconditions[m].var << " " << preconditions[m].val << endl;
-                        }
-                    }
-                }
-                else if (counter[op] == preconditions.size()) {
-                    operator_mark[op] = true;
-                    assert(preconditions.size() == counter[op]);
-                    const vector<Effect>& effects = g_operators[op].get_effects();
-                    for (int e = 0; e < effects.size(); e++) {
-                        if (fact_set.find(make_pair(effects[e].var, effects[e].val)) == fact_set.end()) {
-                            //cout << "facts that are not achieved yet " << fact.first << " " << fact.second << endl;
-                            //cout << "facts that is scheduled " << effects[e].var << " " << effects[e].val << endl;
-                            /* Fact is achieved for the first time. Schedule Fact and add to seen facts*/
-                            fact_set.insert(make_pair(effects[e].var, effects[e].val));
-                            fact_schedule.push(make_pair(effects[e].var, effects[e].val));
-                            
-                            if (goal_set.find(make_pair(effects[e].var, effects[e].val)) != goal_set.end()) {
-                                /*Achieved fact is goal fact*/
-                                //cout << "achieved goal facts " << effects[e].var << " " << effects[e].val << endl;
-                                req_goal--;
+                            if (counter[op] == preconditions.size()) {
+                                operator_mark[op] = true;
+                                assert(preconditions.size() == counter[op]);
+                                /*
+                                for (int k = 0; k < preconditions.size(); ++k) {
+                                    cout << "prec " << preconditions[k].var << " " << preconditions[k].val << endl;
+                                }
+                                */
+                                const vector<Effect>& effects = g_operators[op].get_effects();
+                                for (int e = 0; e < effects.size(); e++) {
+
+
+
+                                    //cout << "considered fact " << effects[e].var << " " << effects[e].val << endl;
+                                    if (fact_set.find(make_pair(effects[e].var, effects[e].val)) == fact_set.end()) {
+                                        //cout << "facts that are not achieved yet " << fact.first << " " << fact.second << endl;
+                                        //cout << "facts that is scheduled " << effects[e].var << " " << effects[e].val << endl;
+                                        /* Fact is achieved for the first time. Schedule Fact and add to seen facts*/
+                                        fact_set.insert(make_pair(effects[e].var, effects[e].val));
+                                        fact_schedule.push(make_pair(effects[e].var, effects[e].val));
+
+                                        if (goal_set.find(make_pair(effects[e].var, effects[e].val)) != goal_set.end()) {
+                                            /*Achieved fact is goal fact*/
+                                            //cout << "achieved goal facts " << effects[e].var << " " << effects[e].val << endl;
+                                            req_goal--;
+                                        }
+                                    }
+
+
+                                }
                             }
+                            
                         }
-
-
                     }
                 }
+               
             }
 
         }
@@ -159,16 +183,23 @@ static bool doStep() {
     timestep++;
     //cout << "timestep " << timestep << endl;
     small_iteration();
-   
     int q_size = fact_schedule.size(); /*Number of new scheduled facts for given iteration*/
-    
-    //cout << "timestep " << timestep << " Goals to achieve after It " << req_goal << " Scheduled fact for given it " <<q_size<< endl;
-    if (req_goal == 0||q_size==0) {
-        
+    if (req_goal == 0 || q_size == 0) {
+
         return false; /*No new facts were scheduled, so we can't achieve new facts OR we have achieved all goal facts*/
     }
+   
+
+    
+    //cout << "timestep " << timestep << " Goals to achieve after It " << req_goal << " Scheduled fact for given it " <<q_size<< endl;
+
     return true; /*Facts were scheduled and not all goal facts are achieved*/
  
+}
+static void queue_clear(queue<pair<int,int>>& q)
+{
+    queue<pair<int,int>> empty;
+    swap(q, empty);
 }
 
 
@@ -177,13 +208,14 @@ int MaxHeuristic::compute_heuristic(const State &state) {
 
     
     // TODO implementation
+    queue_clear(fact_schedule);
     fact_set.clear();
     timestep = 0;
     req_goal = g_goal.size();
 
-    //cout << "Goals to achieve" << req_goal << endl;
-    
+
     init_layers_and_counter(state);
+
 
     //cout << "Goals to achieve that are not already achieved" << req_goal << endl;
 
@@ -192,7 +224,6 @@ int MaxHeuristic::compute_heuristic(const State &state) {
     while (progress) {
         //cout << "timestep " << timestep << " Goals to achieve before it " << req_goal << " Fact that are updated " << fact_schedule.size() << endl;
         progress = doStep();
-        
 
     }
     //cout << "goals not achieved " << req_goal << endl;
