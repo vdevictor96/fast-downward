@@ -26,7 +26,7 @@ int MaxHeuristic::compute_heuristic(const State &state) {
         iterative_costs[var].resize(g_variable_domain[var], DEAD_END);
         iterative_costs[var][state[var]] = 0;
     }
-
+    /* Begin iterations */
     bool state_changed = true;
     while (state_changed) {
         state_changed = false;
