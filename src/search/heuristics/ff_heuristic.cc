@@ -83,7 +83,7 @@ int FFHeuristic::compute_heuristic(const State &state)
         }
     }
     /* Calculate relaxed plan */
-    std::vector<varVal> open;
+    std::set<varVal> open;
     for (size_t g = 0; g < g_goal.size(); g++) {
         // add all goals that are not in initial state to the open set
         if (state[g_goal[g].first] != g_goal[g].second) {
@@ -94,27 +94,38 @@ int FFHeuristic::compute_heuristic(const State &state)
     std::vector<Operator> relaxed_plan;
     /* Iterate over open set */
     while (open.size() > 0) {
-        varVal const g = open.front();
+        // for open as vector varVal const g = open.front();
+        varVal const g = *(open.begin());
         open.erase(open.begin());
         closed.insert(g);
         auto &sf = supporter_func[g.first][g.second];
          // just add the action if it has not been added before
         if (!sf.second) {
             relaxed_plan.insert(relaxed_plan.end(), sf.first);
+            // update the flag of used in relaxed plan in the vector 
+            sf.second = true;
         }
-        // update the flag of used in relaxed plan in the vector 
-        supporter_func[g.first][g.second] = make_pair(sf.first, true);
         const vector<Condition> &preconditions = sf.first.get_preconditions();
         for (size_t p = 0; p < preconditions.size(); p++) {
             varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
+            // if (!(closed.count(precondition) == 0)) {
+            //     cout << "preconditions in closed"  << endl;
+            // }
+            // else if (state[preconditions[p].var] == preconditions[p].val) {
+            //     cout << "preconditions in init state"  << endl;
+            // } else if ((find(open.begin(), open.end(), precondition) != open.end())) {
+            //     cout << "preconditions in open already"  << endl;
+            // } else {
+            //     count++;
+            // }
             // not in initial state
             if (state[preconditions[p].var] != preconditions[p].val &&
                 // nor in closed
-                closed.count(precondition) == 0
-                //  &&
+                closed.count(precondition) == 0 &&
                 // nor in opened already
                 // TODO check if this is necessary
-                // (find(open.begin(), open.end(), precondition) == open.end())
+                open.count(precondition) == 0
+                // for open as vector (find(open.begin(), open.end(), precondition) == open.end()
             ) 
             {
                 // add to open vector at the end.
