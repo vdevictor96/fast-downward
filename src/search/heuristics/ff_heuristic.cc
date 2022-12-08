@@ -20,6 +20,13 @@ void FFHeuristic::initialize()
 }
 
 typedef std::pair<int,int> varVal;
+template <typename T>
+std::vector<const T*> convertFrom(std::vector<T>& source)
+{
+    std::vector<const T*> target(source.size());
+    std::transform(source.begin(), source.end(), target.begin(), [](T& t) { return &t; });
+    return target;
+}
 
 int FFHeuristic::compute_heuristic(const State &state)
 {
@@ -31,10 +38,10 @@ int FFHeuristic::compute_heuristic(const State &state)
         iterative_costs[var][state[var]] = 0;
     }
      /* Init vector with all best-supporter functions */
-    std::vector<std::vector<Operator>> supporter_func;
+    std::vector<std::vector<pair<Operator, bool>>> supporter_func;
     supporter_func.resize(g_variable_domain.size());
     for (unsigned var = 0; var < g_variable_domain.size(); var++) {
-        supporter_func[var].resize(g_variable_domain[var], g_operators[0]);
+        supporter_func[var].resize(g_variable_domain[var], make_pair(g_operators[0], false));
         // supporter_func[var].resize(g_variable_domain[var], );
         // supporter_func[var][state[var]] = NULL;
         
@@ -68,7 +75,7 @@ int FFHeuristic::compute_heuristic(const State &state)
                     if (iterative_costs[effects[e].var][effects[e].val] == DEAD_END || possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
                         state_changed = true;
                         iterative_costs[effects[e].var][effects[e].val] = possible_action_cost;
-                        supporter_func[effects[e].var][effects[e].val] = possible_action;
+                        supporter_func[effects[e].var][effects[e].val] = make_pair(possible_action, false);
                     }
                     
                 }
@@ -87,18 +94,28 @@ int FFHeuristic::compute_heuristic(const State &state)
     std::vector<Operator> relaxed_plan;
     /* Iterate over open set */
     while (open.size() > 0) {
-        auto open_it = open.begin();
-        varVal const &g = *(open.erase(open_it));
+        varVal const g = open.front();
+        open.erase(open.begin());
         closed.insert(g);
         auto &sf = supporter_func[g.first][g.second];
-        relaxed_plan.insert(relaxed_plan.end(), sf);
-        const vector<Condition> &preconditions = sf.get_preconditions();
+         // just add the action if it has not been added before
+        if (!sf.second) {
+            relaxed_plan.insert(relaxed_plan.end(), sf.first);
+        }
+        // update the flag of used in relaxed plan in the vector 
+        supporter_func[g.first][g.second] = make_pair(sf.first, true);
+        const vector<Condition> &preconditions = sf.first.get_preconditions();
         for (size_t p = 0; p < preconditions.size(); p++) {
             varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
             // not in initial state
             if (state[preconditions[p].var] != preconditions[p].val &&
                 // nor in closed
-                closed.count(precondition) == 0) 
+                closed.count(precondition) == 0
+                //  &&
+                // nor in opened already
+                // TODO check if this is necessary
+                // (find(open.begin(), open.end(), precondition) == open.end())
+            ) 
             {
                 // add to open vector at the end.
                 open.insert(open.end(), precondition);
@@ -106,16 +123,14 @@ int FFHeuristic::compute_heuristic(const State &state)
         }
     }
     /* Check goals are reached */
-    int max_cost = DEAD_END;
     for (size_t g = 0; g < g_goal.size(); g++) {
         int cost = iterative_costs[g_goal[g].first][g_goal[g].second];
         if (cost == DEAD_END){
             return DEAD_END;
         }
-        else if (cost > max_cost) {
-             max_cost = cost;
-        }
     }
+    // std::vector<const Operator *> r_plan = convertFrom(relaxed_plan);
+    // cout << is_relaxed_plan(state, r_plan) << endl;
     /* Return size of relaxed_plan */
     return relaxed_plan.size();
 }
