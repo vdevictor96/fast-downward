@@ -38,10 +38,10 @@ int FFHeuristic::compute_heuristic(const State &state)
         iterative_costs[var][state[var]] = 0;
     }
      /* Init vector with all best-supporter functions */
-    std::vector<std::vector<pair<Operator, bool>>> supporter_func;
+    std::vector<std::vector<Operator>> supporter_func;
     supporter_func.resize(g_variable_domain.size());
     for (unsigned var = 0; var < g_variable_domain.size(); var++) {
-        supporter_func[var].resize(g_variable_domain[var], make_pair(g_operators[0], false));
+        supporter_func[var].resize(g_variable_domain[var], g_operators[0]);
         // supporter_func[var].resize(g_variable_domain[var], );
         // supporter_func[var][state[var]] = NULL;
         
@@ -75,15 +75,23 @@ int FFHeuristic::compute_heuristic(const State &state)
                     if (iterative_costs[effects[e].var][effects[e].val] == DEAD_END || possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
                         state_changed = true;
                         iterative_costs[effects[e].var][effects[e].val] = possible_action_cost;
-                        supporter_func[effects[e].var][effects[e].val] = make_pair(possible_action, false);
+                        supporter_func[effects[e].var][effects[e].val] = possible_action;
                     }
                     
                 }
             }
         }
     }
+     /* Check goals are reached */
+    for (size_t g = 0; g < g_goal.size(); g++) {
+        int cost = iterative_costs[g_goal[g].first][g_goal[g].second];
+        if (cost == DEAD_END){
+            return DEAD_END;
+        }
+    }
+
     /* Calculate relaxed plan */
-    std::set<varVal> open;
+    std::vector<varVal> open;
     for (size_t g = 0; g < g_goal.size(); g++) {
         // add all goals that are not in initial state to the open set
         if (state[g_goal[g].first] != g_goal[g].second) {
@@ -94,38 +102,39 @@ int FFHeuristic::compute_heuristic(const State &state)
     std::vector<Operator> relaxed_plan;
     /* Iterate over open set */
     while (open.size() > 0) {
-        // for open as vector varVal const g = open.front();
-        varVal const g = *(open.begin());
+        varVal const g = open.front();
         open.erase(open.begin());
-        closed.insert(g);
+        closed.insert(closed.end(), g);
         auto &sf = supporter_func[g.first][g.second];
          // just add the action if it has not been added before
-        if (!sf.second) {
-            relaxed_plan.insert(relaxed_plan.end(), sf.first);
-            // update the flag of used in relaxed plan in the vector 
-            sf.second = true;
+        auto it = find_if(relaxed_plan.begin(), relaxed_plan.end(), 
+            [sf](Operator& o) -> bool { 
+                return o.get_name() == sf.get_name();
+            });
+        if (it == relaxed_plan.end()) {
+            relaxed_plan.insert(relaxed_plan.end(), sf);
         }
-        const vector<Condition> &preconditions = sf.first.get_preconditions();
+        const vector<Condition> &preconditions = sf.get_preconditions();
         for (size_t p = 0; p < preconditions.size(); p++) {
             varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
-            // if (!(closed.count(precondition) == 0)) {
-            //     cout << "preconditions in closed"  << endl;
-            // }
-            // else if (state[preconditions[p].var] == preconditions[p].val) {
-            //     cout << "preconditions in init state"  << endl;
-            // } else if ((find(open.begin(), open.end(), precondition) != open.end())) {
-            //     cout << "preconditions in open already"  << endl;
-            // } else {
-            //     count++;
-            // }
+            if (!(closed.count(precondition) == 0)) {
+                cout << "preconditions in closed"  << endl;
+            }
+            else if (state[preconditions[p].var] == preconditions[p].val) {
+                cout << "preconditions in init state"  << endl;
+            } else if ((find(open.begin(), open.end(), precondition) != open.end())) {
+                cout << "preconditions in open already"  << endl;
+            } else {
+            }
             // not in initial state
             if (state[preconditions[p].var] != preconditions[p].val &&
                 // nor in closed
                 closed.count(precondition) == 0 &&
                 // nor in opened already
                 // TODO check if this is necessary
-                open.count(precondition) == 0
-                // for open as vector (find(open.begin(), open.end(), precondition) == open.end()
+                // open.count(precondition) == 0
+                // for open as vector 
+                (find(open.begin(), open.end(), precondition) == open.end())
             ) 
             {
                 // add to open vector at the end.
@@ -133,16 +142,14 @@ int FFHeuristic::compute_heuristic(const State &state)
             }
         }
     }
-    /* Check goals are reached */
-    for (size_t g = 0; g < g_goal.size(); g++) {
-        int cost = iterative_costs[g_goal[g].first][g_goal[g].second];
-        if (cost == DEAD_END){
-            return DEAD_END;
-        }
-    }
-    // std::vector<const Operator *> r_plan = convertFrom(relaxed_plan);
-    // cout << is_relaxed_plan(state, r_plan) << endl;
+   
+    std::vector<const Operator *> r_plan = convertFrom(relaxed_plan);
+    cout << is_relaxed_plan(state, r_plan) << endl;
     /* Return size of relaxed_plan */
+    cout << "relaxed_plan: " << endl; 
+    for (auto ac = 0; ac < relaxed_plan.size(); ac++){
+        cout << relaxed_plan[ac].get_name() << endl; 
+    }  
     return relaxed_plan.size();
 }
 
