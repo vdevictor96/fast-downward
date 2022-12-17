@@ -38,6 +38,8 @@ int FFHeuristic::compute_heuristic(const State &state)
         iterative_costs[var][state[var]] = 0;
     }
      /* Init vector with all best-supporter functions */
+     // TODO change vector for vector of pointers
+    // std::vector<std::vector<Operator*>> supporter_func;
     std::vector<std::vector<Operator>> supporter_func;
     supporter_func.resize(g_variable_domain.size());
     for (unsigned var = 0; var < g_variable_domain.size(); var++) {
@@ -82,13 +84,23 @@ int FFHeuristic::compute_heuristic(const State &state)
             }
         }
     }
-     /* Check goals are reached */
+    /* Check goals are reached */
     for (size_t g = 0; g < g_goal.size(); g++) {
         int cost = iterative_costs[g_goal[g].first][g_goal[g].second];
         if (cost == DEAD_END){
             return DEAD_END;
         }
     }
+    // for (unsigned var = 0; var < g_variable_domain.size(); var++) {
+    //     // for(unsigned val = 0; val < g_variable_domain[var]; val++) {
+    //     //     cout << "var: " << var << " val: " << val;
+    //     //     cout << " sf: "<< supporter_func[var][val].get_name() << endl;
+    //     // }
+    //     supporter_func[var].resize(g_variable_domain[var], g_operators[0]);
+    //     // supporter_func[var].resize(g_variable_domain[var], );
+    //     // supporter_func[var][state[var]] = NULL;
+            
+    // }
 
     /* Calculate relaxed plan */
     std::vector<varVal> open;
@@ -102,55 +114,69 @@ int FFHeuristic::compute_heuristic(const State &state)
     std::vector<Operator> relaxed_plan;
     /* Iterate over open set */
     while (open.size() > 0) {
-        varVal const g = open.front();
-        open.erase(open.begin());
-        closed.insert(closed.end(), g);
+        // varVal const g = open.front();
+        // open.erase(open.begin());
+        varVal const g = open.back();
+        open.pop_back();
+        closed.insert(g);
         auto &sf = supporter_func[g.first][g.second];
+        // cout << sf.get_name() << endl; 
          // just add the action if it has not been added before
         auto it = find_if(relaxed_plan.begin(), relaxed_plan.end(), 
             [sf](Operator& o) -> bool { 
                 return o.get_name() == sf.get_name();
             });
         if (it == relaxed_plan.end()) {
+        // if (true) { 
             relaxed_plan.insert(relaxed_plan.end(), sf);
-        }
-        const vector<Condition> &preconditions = sf.get_preconditions();
-        for (size_t p = 0; p < preconditions.size(); p++) {
-            varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
-            if (!(closed.count(precondition) == 0)) {
-                cout << "preconditions in closed"  << endl;
+            const vector<Condition> &preconditions = sf.get_preconditions();
+            // Add effects of action in closed list
+            const vector<Effect> &effects = sf.get_effects();
+            for (size_t e = 0; e < effects.size(); e++) {
+                varVal effect = make_pair(effects[e].var, effects[e].val);
+                closed.insert(effect);
             }
-            else if (state[preconditions[p].var] == preconditions[p].val) {
-                cout << "preconditions in init state"  << endl;
-            } else if ((find(open.begin(), open.end(), precondition) != open.end())) {
-                cout << "preconditions in open already"  << endl;
-            } else {
-            }
-            // not in initial state
-            if (state[preconditions[p].var] != preconditions[p].val &&
-                // nor in closed
-                closed.count(precondition) == 0 &&
-                // nor in opened already
-                // TODO check if this is necessary
-                // open.count(precondition) == 0
-                // for open as vector 
-                (find(open.begin(), open.end(), precondition) == open.end())
-            ) 
-            {
-                // add to open vector at the end.
-                open.insert(open.end(), precondition);
+            for (size_t p = 0; p < preconditions.size(); p++) {
+                varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
+                // if (!(closed.count(precondition) == 0)) {
+                //     cout << "preconditions in closed"  << endl;
+                // }
+                // else if (state[preconditions[p].var] == preconditions[p].val) {
+                //     cout << "preconditions in init state"  << endl;
+                // } else if ((find(open.begin(), open.end(), precondition) != open.end())) {
+                //     cout << "preconditions in open already"  << endl;
+                // } else {
+                // }
+                // not in initial state
+               
+                if (state[preconditions[p].var] != preconditions[p].val &&
+                    // nor in closed
+                    closed.count(precondition) == 0 &&
+                    // nor in opened already
+                    // TODO check if this is necessary
+                    // open.count(precondition) == 0
+                    // for open as vector 
+                    (find(open.begin(), open.end(), precondition) == open.end())
+                ) 
+                {
+                    // add to open vector at the end.
+                    open.insert(open.end(), precondition);
+                }
             }
         }
     }
    
-    std::vector<const Operator *> r_plan = convertFrom(relaxed_plan);
-    cout << is_relaxed_plan(state, r_plan) << endl;
+    // std::vector<const Operator *> r_plan = convertFrom(relaxed_plan);
+    // cout << is_relaxed_plan(state, r_plan) << endl;
     /* Return size of relaxed_plan */
-    cout << "relaxed_plan: " << endl; 
-    for (auto ac = 0; ac < relaxed_plan.size(); ac++){
-        cout << relaxed_plan[ac].get_name() << endl; 
-    }  
+    // cout << "relaxed_plan: " << endl; 
+    // for (auto ac = 0; ac < relaxed_plan.size(); ac++){
+    //     cout << relaxed_plan[ac].get_name() << endl; 
+    // }  
+    // cout << relaxed_plan.size() << endl; 
+    // return DEAD_END; 
     return relaxed_plan.size();
+
 }
 
 void FFHeuristic::get_helpful_actions(std::vector<const Operator *>
