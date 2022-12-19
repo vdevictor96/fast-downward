@@ -103,7 +103,7 @@ int FFHeuristic::compute_heuristic(const State &state)
             open.insert(open.end(), make_pair(g_goal[g].first, g_goal[g].second));
         }
     }
-    std::set<varVal> closed;
+    std::vector<varVal> closed;
     std::vector<const Operator*> relaxed_plan;
     /* Iterate over open set */
     while (open.size() > 0) {
@@ -111,7 +111,7 @@ int FFHeuristic::compute_heuristic(const State &state)
         // open.erase(open.begin());
         varVal const g = open.back();
         open.pop_back();
-        closed.insert(g);
+        closed.insert(closed.end(), g);
         const Operator* &sf = supporter_func[g.first][g.second];
         // cout << sf.get_name() << endl; 
          // just add the action if it has not been added before
@@ -129,7 +129,7 @@ int FFHeuristic::compute_heuristic(const State &state)
             const vector<Effect> &effects = (*sf).get_effects();
             for (size_t e = 0; e < effects.size(); e++) {
                 varVal effect = make_pair(effects[e].var, effects[e].val);
-                closed.insert(effect);
+                closed.insert(closed.end(), effect);
             }
             for (size_t p = 0; p < preconditions.size(); p++) {
                 varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
@@ -146,7 +146,7 @@ int FFHeuristic::compute_heuristic(const State &state)
                
                 if (state[preconditions[p].var] != preconditions[p].val &&
                     // nor in closed
-                    closed.count(precondition) == 0 &&
+                    (find(closed.begin(), closed.end(), precondition) == closed.end()) &&
                     // nor in opened already
                     // TODO check if this is necessary
                     // open.count(precondition) == 0
