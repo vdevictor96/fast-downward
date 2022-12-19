@@ -20,13 +20,7 @@ void FFHeuristic::initialize()
 }
 
 typedef std::pair<int,int> varVal;
-template <typename T>
-std::vector<const T*> convertFrom(std::vector<T>& source)
-{
-    std::vector<const T*> target(source.size());
-    std::transform(source.begin(), source.end(), target.begin(), [](T& t) { return &t; });
-    return target;
-}
+
 
 int FFHeuristic::compute_heuristic(const State &state)
 {
@@ -39,11 +33,10 @@ int FFHeuristic::compute_heuristic(const State &state)
     }
      /* Init vector with all best-supporter functions */
      // TODO change vector for vector of pointers
-    // std::vector<std::vector<Operator*>> supporter_func;
-    std::vector<std::vector<Operator>> supporter_func;
+    std::vector<std::vector<const Operator *>> supporter_func;
     supporter_func.resize(g_variable_domain.size());
     for (unsigned var = 0; var < g_variable_domain.size(); var++) {
-        supporter_func[var].resize(g_variable_domain[var], g_operators[0]);
+        supporter_func[var].resize(g_variable_domain[var], &g_operators[0]);
         // supporter_func[var].resize(g_variable_domain[var], );
         // supporter_func[var][state[var]] = NULL;
         
@@ -71,13 +64,13 @@ int FFHeuristic::compute_heuristic(const State &state)
             }
             if (applicable) {
                 const vector<Effect> &effects = g_operators[i].get_effects();
-                const Operator possible_action = g_operators[i];
+                const Operator &possible_action = g_operators[i];
                 const int &possible_action_cost = possible_action.get_cost() + previous_cost;
                 for (size_t e = 0; e < effects.size(); e++) {
                     if (iterative_costs[effects[e].var][effects[e].val] == DEAD_END || possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
                         state_changed = true;
                         iterative_costs[effects[e].var][effects[e].val] = possible_action_cost;
-                        supporter_func[effects[e].var][effects[e].val] = possible_action;
+                        supporter_func[effects[e].var][effects[e].val] = &g_operators[i];
                     }
                     
                 }
@@ -111,7 +104,7 @@ int FFHeuristic::compute_heuristic(const State &state)
         }
     }
     std::set<varVal> closed;
-    std::vector<Operator> relaxed_plan;
+    std::vector<const Operator*> relaxed_plan;
     /* Iterate over open set */
     while (open.size() > 0) {
         // varVal const g = open.front();
@@ -119,19 +112,21 @@ int FFHeuristic::compute_heuristic(const State &state)
         varVal const g = open.back();
         open.pop_back();
         closed.insert(g);
-        auto &sf = supporter_func[g.first][g.second];
+        const Operator* &sf = supporter_func[g.first][g.second];
         // cout << sf.get_name() << endl; 
          // just add the action if it has not been added before
-        auto it = find_if(relaxed_plan.begin(), relaxed_plan.end(), 
-            [sf](Operator& o) -> bool { 
-                return o.get_name() == sf.get_name();
-            });
+        // auto it = find_if(relaxed_plan.begin(), relaxed_plan.end(), 
+        //     [sf](Operator& o) -> bool { 
+        //         return o.get_name() == sf.get_name();
+        //     });
+        auto it = find(relaxed_plan.begin(), relaxed_plan.end(), sf);
         if (it == relaxed_plan.end()) {
         // if (true) { 
             relaxed_plan.insert(relaxed_plan.end(), sf);
-            const vector<Condition> &preconditions = sf.get_preconditions();
+            const vector<Condition> &preconditions = (*sf).get_preconditions();
+            // (*sf)->
             // Add effects of action in closed list
-            const vector<Effect> &effects = sf.get_effects();
+            const vector<Effect> &effects = (*sf).get_effects();
             for (size_t e = 0; e < effects.size(); e++) {
                 varVal effect = make_pair(effects[e].var, effects[e].val);
                 closed.insert(effect);
@@ -166,7 +161,6 @@ int FFHeuristic::compute_heuristic(const State &state)
         }
     }
    
-    // std::vector<const Operator *> r_plan = convertFrom(relaxed_plan);
     // cout << is_relaxed_plan(state, r_plan) << endl;
     /* Return size of relaxed_plan */
     // cout << "relaxed_plan: " << endl; 
