@@ -2,6 +2,11 @@
 #define PDB_HEURISTIC_H
 
 #include "../heuristic.h"
+#include <queue>
+#include <vector>
+#include <unordered_set>
+#include <unordered_map>
+
 
 // Usage example: the command line option for using h^{PDB} in astar is
 // ./fast-downward.py [path-to-PDDL-problem-file] --search "wastar(pdb())"
@@ -68,6 +73,44 @@ protected:
 public:
     PDBHeuristic(const Options &options);
     ~PDBHeuristic() = default;
+
+private:
+    struct hashFunction
+    {
+        size_t operator()(const int& x) const
+        {
+            return x;
+        }
+    };
+    struct compare
+    {
+        size_t operator()(const int& x1, const int& x2) const
+        {
+            if (x1 == x2) { 
+                return true; 
+            }
+            return false;
+        }
+    };
+    void Dijkstra();
+    std::vector<int> patterns;
+    std::vector <int>N_ind;
+    int unrank(int r, int var);
+    int rank(std::vector<int>& s);
+    int rankState(const State& state);
+    std::vector <int> PDB;
+    bool goal_test(std::vector <int> &s);
+    bool op_applicable(Operator& op, std::vector<int> &s);
+    void computePDB();
+    void apply_operation(Operator& op, std::vector <int>& s);
+    std::unordered_map <int, std::unordered_set <int, hashFunction, compare>> adjList;
+    std::queue <int> list;
+    std::unordered_set <int,hashFunction,compare> closed_list;
+    std::vector<Operator> applicable_ops;
+    void check_applicable_ops();
+ 
+
+
 };
 
 #endif
