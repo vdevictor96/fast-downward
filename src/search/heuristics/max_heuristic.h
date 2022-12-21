@@ -43,7 +43,7 @@ private:
     void op_queue_clear(std::queue<std::pair<Operator, int>> q);
     std::vector<int> counter;
     std::queue <std::pair<int, int>> fact_schedule;
-    std::queue <std::pair<Operator, int>> operator_queue;
+    std::queue <std::pair<Operator, int>> operator_queue;   
     int timestep;
     int req_goal;
     std::vector <bool> fact_set;

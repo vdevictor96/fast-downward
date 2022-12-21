@@ -108,7 +108,7 @@ private:
     std::unordered_map <int, std::unordered_set <int, hashFunction, compare>> adjList;
     std::queue <int> list;
     std::unordered_set <int,hashFunction,compare> closed_list;
-    bool check_orthogonality(std::vector <int>& pattern1, std::vector<int>& pattern2);
+    bool check_orthogonality();
     std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
 
  

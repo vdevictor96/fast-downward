@@ -198,8 +198,6 @@ int MaxHeuristic::compute_heuristic(const State& state) {
         progress = doStep();
 
     }
-    //cout << "goals not achieved " << req_goal << endl;
-    //cout << "h_value " << timestep << endl;
     if (req_goal > 0) {
         return DEAD_END; /* Not all goal facts could be achieved*/
     }

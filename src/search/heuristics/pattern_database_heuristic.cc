@@ -118,13 +118,13 @@ void PDBHeuristic::computePDB() {
 
                 }
                 if (adjList.find(r2) == adjList.end()) {
-                    adjList.insert(make_pair(r2,r));
+adjList.insert(make_pair(r2, r));
                 }
                 else {
                     adjList.at(r2).insert(r); //The graph is backwards
                 }
 
-                
+
             }
         }
     }
@@ -137,19 +137,20 @@ void PDBHeuristic::computePDB() {
 void PDBHeuristic::initialize()
 {
     cout << "Initializing PDB heuristic..." << endl;
-    
+
     if (!m_test_pattern.empty()) {
-	// Use m_test_pattern
-         patterns = m_test_pattern;
+        // Use m_test_pattern
+        patterns = m_test_pattern;
         computePDB();
 
-	// TODO implementation
-    } else {
-	// Use automatic method
+        // TODO implementation
+    }
+    else {
+        // Use automatic method
         patterns = { 1,4 };
         computePDB();
-	
-	// TODO implementation
+
+        // TODO implementation
     }
 
 }
@@ -175,7 +176,7 @@ void PDBHeuristic::Dijkstra() { //This is actual breadth-first search with unit 
             int front = list.front();
             closed_list.insert(front);
             if (adjList.find(front) != adjList.end()) {
-                for (auto &neighbour : adjList.at(front)) {
+                for (auto& neighbour : adjList.at(front)) {
                     if (closed_list.find(neighbour) == closed_list.end()) {
                         list.push(neighbour);
                         PDB[neighbour] = h;
@@ -193,7 +194,7 @@ void PDBHeuristic::Dijkstra() { //This is actual breadth-first search with unit 
 }
 
 
-int PDBHeuristic::compute_heuristic(const State &state)
+int PDBHeuristic::compute_heuristic(const State& state)
 {
     int r = rankState(state);
 
@@ -207,17 +208,30 @@ int PDBHeuristic::compute_heuristic(const State &state)
     }
 }
 
-bool PDBHeuristic::check_orthogonality(vector <int> &pattern1, vector<int> &pattern2) {
+bool PDBHeuristic::check_orthogonality() {
 
-    for (auto &pat : pattern_collection) {
+    for (auto& pat : pattern_collection) {
         applicable_ops_collection.push_back(check_applicable_ops(pat));
     }
-    for (auto &app : applicable_ops_collection) {
-        
+    for (int i = 0; i < applicable_ops_collection.size(); ++i) {
+        for (int j = i + 1; j < applicable_ops_collection.size(); ++j){
+            for (auto& op1 : applicable_ops_collection[i])
+
+                for (auto &op2:applicable_ops_collection[j]) {
+                    if (op1.second == op2.second) {
+                        return false;
+                    }
+
+                }
+
+        }
     }
-    return false;
+
+    return true;
     
 }
+
+
 
 static Heuristic *_parse(OptionParser &parser)
 {
