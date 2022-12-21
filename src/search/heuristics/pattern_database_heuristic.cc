@@ -51,16 +51,20 @@ bool PDBHeuristic::goal_test(vector <int> &s) {
     }
     return true;
 }
-void PDBHeuristic::check_applicable_ops() {
+vector <pair<Operator,int>> PDBHeuristic::check_applicable_ops(vector <int> &pat) {
+    vector <pair<Operator,int>> pattern_ops;
+    int count = 0;
     for (auto op : g_operators) {
         for (auto eff : op.get_effects()) {
-            if (find(patterns.begin(), patterns.end(), eff.var) != patterns.end()) {
-                applicable_ops.push_back(op);
+            if (find(pat.begin(), pat.end(), eff.var) != pat.end()) {
+                pattern_ops.push_back(make_pair(op,count));
                 break;           
-            }            
+            }              
         }
+        count++;
 
     }
+    return pattern_ops;
 }
 
 bool PDBHeuristic::op_applicable(Operator &op,vector<int> &s) {
@@ -92,12 +96,10 @@ void PDBHeuristic::computePDB() {
         
     }
     PDB.assign(N, -1);
-
-    check_applicable_ops();
-
+    vector <pair<Operator,int>> applicable_ops=check_applicable_ops(patterns);
     vector <int> s(g_variable_domain.size());
-    for (int r = 0; r < N; ++r) {
-        
+
+    for (int r = 0; r < N; ++r) {     
         for (auto j:patterns) {
             s[j] = unrank(r, j);
         }
@@ -107,9 +109,9 @@ void PDBHeuristic::computePDB() {
         }
 
         for (auto op:applicable_ops) {
-            if (op_applicable(op,s)) {
+            if (op_applicable(op.first,s)) {
                 vector <int> s2 = s;
-                apply_operation(op, s2);
+                apply_operation(op.first, s2);
                 int r2 = rank(s2);
                 if (r2 == 18 || r2 == 19 || r2 == 20) {
                     cout << "s2" << endl;
@@ -203,6 +205,18 @@ int PDBHeuristic::compute_heuristic(const State &state)
     else {
         return h;
     }
+}
+
+bool PDBHeuristic::check_orthogonality(vector <int> &pattern1, vector<int> &pattern2) {
+
+    for (auto pat : pattern_collection) {
+        applicable_ops_collection.push_back(check_applicable_ops(pat));
+    }
+    for (auto app : applicable_ops_collection) {
+        
+    }
+    return false;
+    
 }
 
 static Heuristic *_parse(OptionParser &parser)

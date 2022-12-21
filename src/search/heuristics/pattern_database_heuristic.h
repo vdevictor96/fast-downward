@@ -94,6 +94,8 @@ private:
     };
     void Dijkstra();
     std::vector<int> patterns;
+    std::vector<std::vector<int>> pattern_collection;
+    std::vector<std::vector<std::pair<Operator,int>>> applicable_ops_collection;
     std::vector <int>N_ind;
     int unrank(int r, int var);
     int rank(std::vector<int>& s);
@@ -106,8 +108,9 @@ private:
     std::unordered_map <int, std::unordered_set <int, hashFunction, compare>> adjList;
     std::queue <int> list;
     std::unordered_set <int,hashFunction,compare> closed_list;
-    std::vector<Operator> applicable_ops;
-    void check_applicable_ops();
+    bool check_orthogonality(std::vector <int>& pattern1, std::vector<int>& pattern2);
+    std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
+
  
 
 
