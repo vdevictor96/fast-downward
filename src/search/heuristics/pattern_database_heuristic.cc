@@ -28,7 +28,7 @@ int PDBHeuristic::unrank(int r,int var) {
 }
 int PDBHeuristic::rankState(const State& state) {
     int sum = 0;
-    for (auto i : patterns) {
+    for (auto &i : patterns) {
         sum = N_ind[i] * state[i];
     }
     return sum;
@@ -36,13 +36,13 @@ int PDBHeuristic::rankState(const State& state) {
 
 int PDBHeuristic::rank(vector <int> &s) {
     int sum = 0;
-    for (auto i:patterns) {
+    for (auto &i:patterns) {
         sum += N_ind[i] * s[i];
     }
     return sum;
 }
 bool PDBHeuristic::goal_test(vector <int> &s) {
-    for (auto i : g_goal) {
+    for (auto &i : g_goal) {
         if (find(patterns.begin(), patterns.end(), i.first) != patterns.end()) {
             if (s[i.first] != i.second) {
                 return false;
@@ -54,8 +54,8 @@ bool PDBHeuristic::goal_test(vector <int> &s) {
 vector <pair<Operator,int>> PDBHeuristic::check_applicable_ops(vector <int> &pat) {
     vector <pair<Operator,int>> pattern_ops;
     int count = 0;
-    for (auto op : g_operators) {
-        for (auto eff : op.get_effects()) {
+    for (auto &op : g_operators) {
+        for (auto &eff : op.get_effects()) {
             if (find(pat.begin(), pat.end(), eff.var) != pat.end()) {
                 pattern_ops.push_back(make_pair(op,count));
                 break;           
@@ -68,7 +68,7 @@ vector <pair<Operator,int>> PDBHeuristic::check_applicable_ops(vector <int> &pat
 }
 
 bool PDBHeuristic::op_applicable(Operator &op,vector<int> &s) {
-    for (auto i: op.get_preconditions()) {
+    for (auto &i: op.get_preconditions()) {
         if (find(patterns.begin(), patterns.end(), i.var) != patterns.end()) {
             if (s[i.var] != i.val) {
                 return false;
@@ -79,7 +79,7 @@ bool PDBHeuristic::op_applicable(Operator &op,vector<int> &s) {
     return true;
 }
 void PDBHeuristic::apply_operation(Operator& op, vector <int>& s) {
-    for (auto eff : op.get_effects()) {
+    for (auto &eff : op.get_effects()) {
         if (find(patterns.begin(), patterns.end(), eff.var) != patterns.end()) {
             s[eff.var] = eff.val;
         }
@@ -90,7 +90,7 @@ void PDBHeuristic::computePDB() {
     int N = 1;
     
     
-    for (auto i:patterns) {
+    for (auto &i:patterns) {
         N_ind[i] = N;
         N *= g_variable_domain[i]; //Compute 
         
@@ -100,7 +100,7 @@ void PDBHeuristic::computePDB() {
     vector <int> s(g_variable_domain.size());
 
     for (int r = 0; r < N; ++r) {     
-        for (auto j:patterns) {
+        for (auto &j:patterns) {
             s[j] = unrank(r, j);
         }
         if (goal_test(s)) {
@@ -108,7 +108,7 @@ void PDBHeuristic::computePDB() {
             list.push(r);
         }
 
-        for (auto op:applicable_ops) {
+        for (auto &op:applicable_ops) {
             if (op_applicable(op.first,s)) {
                 vector <int> s2 = s;
                 apply_operation(op.first, s2);
@@ -175,7 +175,7 @@ void PDBHeuristic::Dijkstra() { //This is actual breadth-first search with unit 
             int front = list.front();
             closed_list.insert(front);
             if (adjList.find(front) != adjList.end()) {
-                for (auto neighbour : adjList.at(front)) {
+                for (auto &neighbour : adjList.at(front)) {
                     if (closed_list.find(neighbour) == closed_list.end()) {
                         list.push(neighbour);
                         PDB[neighbour] = h;
@@ -209,10 +209,10 @@ int PDBHeuristic::compute_heuristic(const State &state)
 
 bool PDBHeuristic::check_orthogonality(vector <int> &pattern1, vector<int> &pattern2) {
 
-    for (auto pat : pattern_collection) {
+    for (auto &pat : pattern_collection) {
         applicable_ops_collection.push_back(check_applicable_ops(pat));
     }
-    for (auto app : applicable_ops_collection) {
+    for (auto &app : applicable_ops_collection) {
         
     }
     return false;

@@ -26,7 +26,7 @@ void MaxHeuristic::initialize() {
         goal_set.insert(g_goal[i]);
     }
     int sum = 0;
-    for (auto g : g_variable_domain) {
+    for (auto &g : g_variable_domain) {
         sum += g;
         hash_arr.push_back(sum); 
     }
@@ -68,7 +68,7 @@ void MaxHeuristic::achieve_facts(int &pos) {
 
     const vector<Effect>& effects = g_operators[pos].get_effects();
     //cout << "effect size " << effects.size() << endl;
-    for (auto eff:effects) {
+    for (auto &eff:effects) {
         //cout << "considered fact " << effects[e].var << " " << effects[e].val << endl;
         if (!fact_set[compute_hash(make_pair(eff.var, eff.val))]) {
             /* Fact is achieved for the first time. Schedule Fact and add to seen facts*/
@@ -179,7 +179,7 @@ int MaxHeuristic::compute_heuristic(const State& state) {
     // TODO implementation
     queue_clear(fact_schedule);
     op_queue_clear(operator_queue);
-    for (auto fact : fact_set) {
+    for (auto &fact : fact_set) {
         fact = false; //Init fact_set by setting all facts to false
     }
     timestep = 0;
