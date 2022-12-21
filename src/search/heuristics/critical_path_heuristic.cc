@@ -19,7 +19,6 @@ void CriticalPathHeuristic::initialize() {
 
 typedef std::pair<int,int> varVal;
 typedef std::pair<varVal,varVal> varVals;
-
 // typedef std::vector<std::tuple<varVal,varVal,int>> facts;
 typedef std::map<varVals,int> facts_map;
 typedef std::map<varVals,int>::iterator facts_map_it;
@@ -28,11 +27,10 @@ vector<int> combination;
 
 void go(int offset, int k, facts_map &iterative_costs, const State &state) {
     if (k == 0) {
-       static int count = 0;
-       cout << "combination no " << (++count) << ": [ ";
-       for (int i = 0; i < combination.size(); ++i) { cout << combination[i] << " "; }
-       cout << "] " << endl;
-
+        static int count = 0;
+        cout << "combination no " << (++count) << ": [ ";
+        for (int i = 0; i < combination.size(); ++i) { cout << combination[i] << " "; }
+        cout << "] " << endl;
         for(int val = 0; val < g_variable_domain[combination[0]]; val++) {
             for(int val2 = 0; val2 < g_variable_domain[combination[1]]; val2++) {
                 varVals comb = make_pair(make_pair(combination[0],val), make_pair(combination[1],val2));
@@ -45,7 +43,7 @@ void go(int offset, int k, facts_map &iterative_costs, const State &state) {
         }
         return;
     }
-    for (int var = offset; var <= g_variable_domain.size() - k; var++) {
+    for (int var = offset; var <= g_variable_domain.size() - k; ++var) {
         combination.push_back(var);
         go(var+1, k-1, iterative_costs, state);
         combination.pop_back();
@@ -56,13 +54,25 @@ int CriticalPathHeuristic::compute_heuristic(const State &state) {
     /* Init vector with all the variable values with infinite */
     facts_map iterative_costs;
     go(0, 2, iterative_costs, state);
-    for(facts_map_it it = iterative_costs.begin(); it != iterative_costs.end(); ++it) {
-        cout << "var1: " << it-> first.first.first;
-        cout << " val1: " << it-> first.first.second;
-        cout << " var2: " << it-> first.second.first;
-        cout << " val2: " << it-> first.second.second;
-        cout << " h: " << it-> second << endl;
+    /* Add size 1 facts as pair of same facts */
+    for(size_t var = 0; var < g_variable_domain.size(); var++) {
+        for(size_t val = 0; val < g_variable_domain[var]; val++) {
+            varVals comb = make_pair(make_pair(var,val), make_pair(var,val));
+            if (state[var] == val) {
+                iterative_costs.insert({comb, 0});
+            } else {
+                iterative_costs.insert({comb, -1});
+            }
+        }
+        
     }
+    // for(facts_map_it it = iterative_costs.begin(); it != iterative_costs.end(); ++it) {
+    //     cout << "var1: " << it-> first.first.first;
+    //     cout << " val1: " << it-> first.first.second;
+    //     cout << " var2: " << it-> first.second.first;
+    //     cout << " val2: " << it-> first.second.second;
+    //     cout << " h: " << it-> second << endl;
+    // }
     // for (int i = 0; i < iterative_costs.size(); i++) {
     //     cout << "var1: " << std::get<0>(iterative_costs[i]).first;
     //     cout << " val1: " << std::get<0>(iterative_costs[i]).second;
@@ -73,111 +83,108 @@ int CriticalPathHeuristic::compute_heuristic(const State &state) {
     cout << "comb size: " << iterative_costs.size() << endl;
     // return DEAD_END;
     /* Set initial state cost to 0*/
-
     /* Begin iterations */
     bool state_changed = true;
+    int count = 0;
     while (state_changed) {
+        cout << " while iterations: " << count++ << endl;
         state_changed = false;
         for (size_t i = 0; i < g_operators.size(); i++) {
             const vector<Condition> &preconditions = g_operators[i].get_preconditions();
-            bool applicable = false;
+            bool applicable = true;
             int previous_cost = 0;
-            if (preconditions.size() == 1) {
-                // special case (just one precondition)
-                // TODO create entries in map with duplicate varVal keys that represent states with of size 1, preconditions of size 1 will check upon them
-                varVal varValKey = make_pair(preconditions[0].var,preconditions[0].val);
-                // facts_map_it it = std::find_if(iterative_costs.begin(), iterative_costs.end(), 
-                //     [varValKey](const std::pair<varVals,int> & t) -> bool { 
-                //         return t.first.first == varValKey || t.first.second == varValKey;
-                //     });
-                for(auto const& [key, val] : iterative_costs) {
-                    if (key.first == varValKey || key.second == varValKey) {
-                            if (val != DEAD_END) {
-                                // if any is not DEAD_END, then set applicable to true for that var1 val1 var2 val2
-                                applicable = true;
-                                // if the precondition is just one we keep the smallest cost
-                                // TODO to avoid this loop we can create entries in the map where the two keys are duplicated
-                                if (val < previous_cost) {
-                                    previous_cost = val;
-                                }
-                            }
+            /* Check for applicability of the action. All pair of preconditions must not different from DEAD_END */
+            for (size_t p = 0; p < preconditions.size(); p++) {
+                if (!applicable) {
+                    break;
+                }
+                for (size_t p2 = 0; p2 < preconditions.size(); p2++) {
+                    varVal pre1 = make_pair(preconditions[p].var,preconditions[p].val);
+                    varVal pre2 = make_pair(preconditions[p2].var,preconditions[p2].val);
+                    varVals key = iterative_costs.count(make_pair(pre1, pre2)) != 0 ? make_pair(pre1, pre2) : make_pair(pre2, pre1);
+                    int cost = iterative_costs[key];
+                    if (cost == DEAD_END) {
+                        // if any is DEAD_END, then the action is not applicable
+                        applicable = false;
+                        break;
+                    } else { 
+                        if (cost > previous_cost) {
+                            previous_cost = cost;
                         }
-                }
-                // std::for_each(iterative_costs.begin(), iterative_costs.end(),
-                //     [&varValKey, &applicable, &previous_cost](const std::pair<varVals,int>& t) -> void { 
-                //         if (t.first.first == varValKey || t.first.second == varValKey) {
-                //             if (t.second != DEAD_END) {
-                //                 // if any is not DEAD_END, then set applicable to true for that var1 val1 var2 val2
-                //                 applicable = true;
-                //                 if (t.second > previous_cost) {
-                //                     previous_cost = t.second;
-                //                 }
-                //             }
-                //         }
-                //         // return t.first.first == varValKey || t.first.second == varValKey;
-                //     });
-                // if (cost != DEAD_END) {
-                //     // if any is not DEAD_END, then set applicable to true for that var1 val1 var2 val2
-                //     applicable = true;
-                //     if (cost > previous_cost) {
-                //         previous_cost = cost;
-                //     }
-                // }
-            } else {
-                // TODO what to do when precondtions size == 3
-                for (size_t p = 0; p < preconditions.size(); p++) {
-                    for (size_t p2 = 0; p2 < preconditions.size(); p2++) {
-                        if (p != p2) {
-                            // check p and p2 in iterative_costs map
-                            varVals key = make_pair(make_pair(preconditions[p].var,preconditions[p].val), make_pair(preconditions[p2].var,preconditions[p2].var));
-                            // find before getting cost
-                            if (iterative_costs.count(key) != 0) {
-                                int cost = iterative_costs[key];
-                                if (cost != DEAD_END) {
-                                    // if any is not DEAD_END, then set applicable to true for that var1 val1 var2 val2
-                                    applicable = false;
-                                    if (cost > previous_cost) {
-                                        previous_cost = cost;
-                                    }
-                                }
-                            }
-                        } 
-                    } 
-                }
-            }  
+                    }
+                } 
+            }
             if (applicable) {
                 const vector<Effect> &effects = g_operators[i].get_effects();
                 const int &possible_action_cost = g_operators[i].get_cost() + previous_cost;
-                if (effects.size() == 1) {
-                        // special case (just one effect)
-                        varVal varValKey = make_pair(effects[0].var,effects[0].val);
-                        facts_map_it it = std::find_if(iterative_costs.begin(), iterative_costs.end(), 
-                            [varValKey](const std::pair<varVals,int> & t) -> bool { 
-                                return t.first.first == varValKey || t.first.second == varValKey;
-                            });
-                            // TODO if there is more than one we should update the iterative costs of all (now just doing it to the first)
-                        int cost = it->second;
-                        if (cost == DEAD_END || possible_action_cost < cost) {
-                            state_changed = true;
-                            iterative_costs[it->first] = possible_action_cost;
-                        }
-                } else {
-                    for (size_t e = 0; e < effects.size(); e++) {
-                        for (size_t e2 = 0; e2 < effects.size(); e2++) {
-                            if (e != e2) {
-                                // check e and e2 in iterative_costs map
-                                varVals key = make_pair(make_pair(effects[e].var,effects[e].val), make_pair(effects[e2].var,effects[e2].var));
-                                // find before getting cost
-                                if (iterative_costs.count(key) != 0) {
-                                    int cost = iterative_costs[key];
-                                    if (cost == DEAD_END || possible_action_cost < cost) {
-                                        state_changed = true;
-                                        iterative_costs[key] = possible_action_cost;
-                                    }
-                                }
+                /* Create pairs of effects + effects */
+                for (size_t e = 0; e < effects.size(); e++) {
+                    for (size_t e2 = 0; e2 < effects.size(); e2++) {
+                        varVal eff1 = make_pair(effects[e].var,effects[e].val);
+                        varVal eff2 = make_pair(effects[e2].var,effects[e2].val);
+                        // if((eff1.first == 4 && eff1.second == 1) || (eff2.first == 4 && eff2.second == 1)) {
+                        //     cout << "goal effect found";
+                        // }
+                        // if pair does not exists, the pair in the other order should exists
+                        varVals key = iterative_costs.count(make_pair(eff1, eff2)) != 0 ? make_pair(eff1, eff2) : make_pair(eff2, eff1);
+                        bool exists_k1 = iterative_costs.count(make_pair(eff1, eff2)) != 0;
+                        bool exists_k2 = iterative_costs.count(make_pair(eff2, eff1)) != 0;
+                        // TODO remove. it should alaways be true
+                        if (iterative_costs.count(key) != 0) {
+                            int cost = iterative_costs[key];
+                            if (cost == DEAD_END ){
+                                // || possible_action_cost < cost) 
+                                state_changed = true;
+                                iterative_costs[key] = possible_action_cost;
                             }
                         }
                     }
+                }
+                for(facts_map_it it = iterative_costs.begin(); it != iterative_costs.end(); ++it) {
+                    varVal fact1 = it->first.first;
+                    varVal fact2 = it->first.second;
+                    int cost = it->second;
+                    /* If the pair of facts is DEAD_END, do not use it for creating new facts */
+                    if (cost == DEAD_END) { goto exit; }
+                    /* If any effect of the action is inconsistent with this pair of facts then break loop */
+                    // TODO check for one fact or for both?
+                    // for (size_t e = 0; e < effects.size(); e++) {
+                    //     if ((effects[e].var == fact1.first && effects[e].val != fact1.second) ||
+                    //         (effects[e].var == fact2.first && effects[e].val != fact2.second)) { 
+                    //             goto exit; 
+                    //     }
+                    // }
+                    /* Create pairs with pairs of facts and effects of the action */
+                    for (size_t e = 0; e < effects.size(); e++) {
+                        varVal eff = make_pair(effects[e].var,effects[e].val);
+                        /* Effect + fact 1 */
+                        varVals key = iterative_costs.count(make_pair(fact1, eff)) != 0 ? make_pair(fact1, eff) : make_pair(eff, fact1);
+                        // If a current fact and an effect is incosistent (same var and different val) it wont exits in iterative_costs
+                        if (iterative_costs.count(key) != 0) {
+                            int cost = iterative_costs[key];
+                            if (cost == DEAD_END || possible_action_cost < cost) {
+                                state_changed = true;
+                                iterative_costs[key] = possible_action_cost;
+                            }
+                        }
+                    }
+                    // if (fact1 == fact2) { goto exit; }
+                    /* Create pairs with pairs of facts and effects of the action */
+                    for (size_t e = 0; e < effects.size(); e++) {
+                        varVal eff = make_pair(effects[e].var,effects[e].val);
+                         /* Effect + fact 2 */
+                        varVals key2 = iterative_costs.count(make_pair(fact2, eff)) != 0 ? make_pair(fact2, eff) : make_pair(eff, fact2);
+                        // If a current fact and an effect is incosistent (same var and different val) it wont exits in iterative_costs
+                        if (iterative_costs.count(key2) != 0) {
+                            int cost = iterative_costs[key2];
+                            if (cost == DEAD_END || possible_action_cost < cost) {
+                                state_changed = true;
+                                iterative_costs[key2] = possible_action_cost;
+                            }
+                        }
+                    }
+                    /* Exit clause */
+                    exit: ;
                 }
             }
         }
@@ -191,39 +198,26 @@ int CriticalPathHeuristic::compute_heuristic(const State &state) {
         cout << " h: " << it-> second << endl;
     }
     int max_cost = DEAD_END;
-    // special case (just one goal)
-    if (g_goal.size() == 1) {
-        varVal varValKey = make_pair(g_goal[0].first,g_goal[0].second);
-        facts_map_it it = std::find_if(iterative_costs.begin(), iterative_costs.end(), 
-            [varValKey](const std::pair<varVals,int> & t) -> bool { 
-                return t.first.first == varValKey || t.first.second == varValKey;
-            });
-        int cost = it->second;
-        if (cost == DEAD_END){
-            return DEAD_END;
-        }
-        else if (cost > max_cost) {
-            max_cost = cost;
-        }
-    } else {
-        for (size_t g = 0; g < g_goal.size(); g++) {
-            for (size_t g2 = 0; g2 < g_goal.size(); g2++) {
-                if (g != g2) {
-                    varVals key = make_pair(make_pair(g_goal[g].first, g_goal[g].second), make_pair(g_goal[g2].first, g_goal[g2].second));
-                    // find before getting cost
-                    if (iterative_costs.count(key) != 0) {
-                        int cost = iterative_costs[key];
-                        if (cost == DEAD_END){
-                            return DEAD_END;
-                        }
-                        else if (cost > max_cost) {
-                            max_cost = cost;
-                        }
-                    }
+    for (size_t g = 0; g < g_goal.size(); g++) {
+        for (size_t g2 = 0; g2 < g_goal.size(); g2++) {
+            varVal goal1 = make_pair(g_goal[g].first,g_goal[g].second);
+            varVal goal2 = make_pair(g_goal[g2].first,g_goal[g2].second);
+            varVals key = iterative_costs.count(make_pair(goal1, goal2)) != 0 ? make_pair(goal1, goal2) : make_pair(goal2, goal1);
+            // TDO remove. it should always be true
+            if (iterative_costs.count(key) != 0) {
+                int cost = iterative_costs[key];
+                if (cost == DEAD_END){
+                    return DEAD_END;
+                }
+                else if (cost > max_cost) {
+                    max_cost = cost;
                 }
             }
+            
         }
     }
+    cout << "first heuristic value: " << max_cost  << endl;
+    // return DEAD_END;
     return max_cost;
 }
 
