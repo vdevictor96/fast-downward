@@ -158,12 +158,12 @@ bool MaxHeuristic::doStep() {
     return true; /*Facts were scheduled and not all goal facts are achieved*/
 
 }
-void MaxHeuristic::queue_clear(queue<pair<int, int>>& q){
+void MaxHeuristic::queue_clear(queue<pair<int, int>> q){
     while (!q.empty()) {
         q.pop();
    }
 }
-void MaxHeuristic::op_queue_clear(queue<pair<Operator&, int>>& q)
+void MaxHeuristic::op_queue_clear(queue<pair<Operator, int>> q)
 {
     while (!q.empty()) {
         q.pop();
