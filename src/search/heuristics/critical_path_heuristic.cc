@@ -119,12 +119,12 @@ int CriticalPathHeuristic::compute_heuristic(const State &state) {
                     /* If the pair of facts is DEAD_END, do not use it for creating new facts */
                     if (cost == DEAD_END) { goto exit; }
                     /* If any effect of the action is inconsistent with this pair of facts then break loop */
-                    for (size_t e = 0; e < effects.size(); e++) {
-                        if ((effects[e].var == fact1.first && effects[e].val != fact1.second) ||
-                            (effects[e].var == fact2.first && effects[e].val != fact2.second)) { 
-                                goto exit; 
-                        }
-                    }
+                    // for (size_t e = 0; e < effects.size(); e++) {
+                    //     if ((effects[e].var == fact1.first && effects[e].val != fact1.second) ||
+                    //         (effects[e].var == fact2.first && effects[e].val != fact2.second)) { 
+                    //             goto exit; 
+                    //     }
+                    // }
                     /* Create pairs with pairs of facts and effects of the action */
                     for (size_t e = 0; e < effects.size(); e++) {
                         varVal eff = make_pair(effects[e].var,effects[e].val);
