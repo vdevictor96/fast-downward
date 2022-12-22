@@ -8,7 +8,6 @@
 
 
 using namespace std;
-int no_goal;
 
 GoalCountHeuristic::GoalCountHeuristic(const Options &opts)
     : Heuristic(opts)
@@ -18,21 +17,17 @@ GoalCountHeuristic::GoalCountHeuristic(const Options &opts)
 void GoalCountHeuristic::initialize()
 {
     cout << "Initializing goal counting heuristic..." << endl;
-    no_goal = g_goal.size();
-
-
 }
 
-int GoalCountHeuristic::compute_heuristic(const State &state)
+int GoalCountHeuristic::compute_heuristic(const State &state) 
 {
-    // TODO implementation
-    int g_satisfied=0;
+    int unachieved_goals = 0;
     for (size_t i = 0; i < g_goal.size(); ++i) {
-        if (state[g_goal[i].first] == g_goal[i].second) {
-            g_satisfied++;
+        if (state[g_goal[i].first] != g_goal[i].second) {
+            unachieved_goals++;
         }
     }
-    return no_goal-g_satisfied;
+    return unachieved_goals;
 }
 
 static Heuristic *_parse(OptionParser &parser)
@@ -47,5 +42,3 @@ static Heuristic *_parse(OptionParser &parser)
 }
 
 static Plugin<Heuristic> _plugin("gc", _parse);
-
-
