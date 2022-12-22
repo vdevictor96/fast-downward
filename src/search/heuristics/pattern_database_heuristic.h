@@ -2,6 +2,11 @@
 #define PDB_HEURISTIC_H
 
 #include "../heuristic.h"
+#include <queue>
+#include <vector>
+#include <unordered_set>
+#include <unordered_map>
+
 
 // Usage example: the command line option for using h^{PDB} in astar is
 // ./fast-downward.py [path-to-PDDL-problem-file] --search "wastar(pdb())"
@@ -68,6 +73,55 @@ protected:
 public:
     PDBHeuristic(const Options &options);
     ~PDBHeuristic() = default;
+
+private:
+    struct hashFunction
+    {
+        size_t operator()(const int& x) const
+        {
+            return x;
+        }
+    };
+    struct compare
+    {
+        size_t operator()(const int& x1, const int& x2) const
+        {
+            if (x1 == x2) { 
+                return true; 
+            }
+            return false;
+        }
+    };
+    void Dijkstra(int ind);
+    std::vector<std::vector<int>> pattern_collection;
+    std::vector <std::vector<int>>N_ind_collection;
+    std::vector<std::vector<int> > PDB_collection;
+    std::vector<std::vector<std::pair<Operator,int>>> applicable_ops_collection;
+    std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
+    std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
+    std::vector<std::queue <int>> list_collection;
+
+    std::vector <int>N_ind;
+    std::vector<int> patterns;
+    std::vector <int> PDB;
+    int unrank(int r, int var, int ind);
+    int rank(std::vector <int>& s, int ind);
+    int rankState(const State& state, int ind);
+    
+    
+    bool goal_test(std::vector <int> &s);
+    bool op_applicable(Operator& op, std::vector<int> &s);
+    void computePDB();
+    void apply_operation(Operator& op, std::vector <int>& s);
+    std::unordered_map <int, std::unordered_set <int, hashFunction, compare>> adjList;
+    std::queue <int> list;
+    std::unordered_set <int,hashFunction,compare> closed_list;
+    bool check_orthogonality();
+    std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
+
+ 
+
+
 };
 
 #endif
