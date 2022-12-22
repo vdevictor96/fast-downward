@@ -22,22 +22,22 @@ PDBHeuristic::PDBHeuristic(const Options &opts)
 		     opts.get_list<int>("test_pattern") : vector<int>()) {
     N_ind.assign(g_variable_domain.size(), 0);
 }
-int PDBHeuristic::unrank(int r,int var) {
-    int temp = r / N_ind[var];
+int PDBHeuristic::unrank(int r,int var,int ind) {
+    int temp = r / N_ind_collection[ind][var];
     return temp % g_variable_domain[var];
 }
-int PDBHeuristic::rankState(const State& state) {
+int PDBHeuristic::rankState(const State& state, int ind) {
     int sum = 0;
-    for (auto &i : patterns) {
-        sum = N_ind[i] * state[i];
+    for (auto &i : pattern_collection[ind]) {
+        sum = N_ind_collection[ind][i] * state[i];
     }
     return sum;
 }
 
-int PDBHeuristic::rank(vector <int> &s) {
+int PDBHeuristic::rank(vector <int> &s, int ind) {
     int sum = 0;
-    for (auto &i:patterns) {
-        sum += N_ind[i] * s[i];
+    for (auto &i:pattern_collection[ind]) {
+        sum += N_ind_collection[ind][i] * s[i];
     }
     return sum;
 }
@@ -87,48 +87,72 @@ void PDBHeuristic::apply_operation(Operator& op, vector <int>& s) {
 }
 
 void PDBHeuristic::computePDB() {
-    int N = 1;
+
+    closed_list_collection.resize(pattern_collection.size());
+    list_collection.resize(pattern_collection.size());
+    adjList_collection.resize(pattern_collection.size());
+    //N_ind_collection.resize(pattern_collection.size());
+
     
-    
-    for (auto &i:patterns) {
-        N_ind[i] = N;
-        N *= g_variable_domain[i]; //Compute 
-        
+    vector <int> n_arr(g_variable_domain.size());
+    fill(n_arr.begin(), n_arr.end(), 0);
+    for (auto &pat : pattern_collection) {
+        int N = 1;
+        int count = 0;
+        N_ind_collection.push_back(n_arr);
+        for (auto& i : pat) {
+            N_ind_collection[count][i] = N;
+            N *= g_variable_domain[i]; //Compute 
+            
+        }
+        N_ind[count] = N;
+        count++;
     }
-    PDB.assign(N, -1);
-    vector <pair<Operator,int>> applicable_ops=check_applicable_ops(patterns);
-    vector <int> s(g_variable_domain.size());
 
-    for (int r = 0; r < N; ++r) {     
-        for (auto &j:patterns) {
-            s[j] = unrank(r, j);
-        }
-        if (goal_test(s)) {
-            PDB[r] = 0;
-            list.push(r);
-        }
+        
+    //Init PDB with -1 for all available patterns
+    for (size_t i = 0; i < pattern_collection.size();i++) {
+        vector<int> s(N_ind[i]);
+        fill(s.begin(), s.end(), -1);
+        PDB_collection.push_back(s);
+    }
 
-        for (auto &op:applicable_ops) {
-            if (op_applicable(op.first,s)) {
-                vector <int> s2 = s;
-                apply_operation(op.first, s2);
-                int r2 = rank(s2);
-                if (r2 == 18 || r2 == 19 || r2 == 20) {
-                    cout << "s2" << endl;
-
+    //Find applicable operations for each pattern
+    for (auto& pat : pattern_collection) {
+        applicable_ops_collection.push_back(check_applicable_ops(pat));
+    }
+    int ind = 0;
+    for (auto& pat : pattern_collection) {
+        vector <int> s(g_variable_domain.size());
+        for (int r = 0; r < N_ind[ind]; ++r) {
+            for (auto& j : pat) {
+                s[j] = unrank(r, j,ind);
+            }
+            if (goal_test(s)) {
+                PDB_collection[ind][r] = 0;
+                closed_list_collection[ind].insert(r);
+                list_collection[ind].push(r);
+            }
+            for (auto& op : applicable_ops_collection[ind]) {
+                if (op_applicable(op.first, s)) {
+                    vector <int> s2 = s;
+                    apply_operation(op.first, s2);
+                    int r2 = rank(s2,ind);
+                    if (adjList_collection[ind].find(r2) == adjList_collection[ind].end()) {
+                        adjList_collection[ind].insert(make_pair(r2, r));
+                    }
+                    else {
+                        adjList_collection[ind].at(r2).insert(r); //The graph is backwards
+                    }
                 }
-                if (adjList.find(r2) == adjList.end()) {
-adjList.insert(make_pair(r2, r));
-                }
-                else {
-                    adjList.at(r2).insert(r); //The graph is backwards
-                }
-
-
             }
         }
+        Dijkstra(ind);
+        ind++;
+
     }
-    Dijkstra();
+
+    
 
 }
 
@@ -140,14 +164,14 @@ void PDBHeuristic::initialize()
 
     if (!m_test_pattern.empty()) {
         // Use m_test_pattern
-        patterns = m_test_pattern;
+        pattern_collection.push_back(m_test_pattern);
         computePDB();
 
         // TODO implementation
     }
     else {
         // Use automatic method
-        patterns = { 1,4 };
+        pattern_collection.push_back ( { 1,4 });
         computePDB();
 
         // TODO implementation
@@ -157,35 +181,27 @@ void PDBHeuristic::initialize()
 
 
 
-void PDBHeuristic::Dijkstra() { //This is actual breadth-first search with unit cost
+void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search with unit cost
     int h = 0;
 
-    int init = list.size();
-    while (init > 0) {
-        closed_list.insert(list.front());
-        list.push(list.front());
-        list.pop();
-        init--;
-    }
 
-
-    while (!list.empty()) {
+    while (!list_collection[ind].empty()) {
         h++;
-        int size = list.size();
+        int size = list_collection[ind].size();
         while (size > 0) {
-            int front = list.front();
-            closed_list.insert(front);
-            if (adjList.find(front) != adjList.end()) {
-                for (auto& neighbour : adjList.at(front)) {
-                    if (closed_list.find(neighbour) == closed_list.end()) {
-                        list.push(neighbour);
-                        PDB[neighbour] = h;
+            int front = list_collection[ind].front();
+            closed_list_collection[ind].insert(front);
+            if (adjList_collection[ind].find(front) != adjList_collection[ind].end()) {
+                for (auto& neighbour : adjList_collection[ind].at(front)) {
+                    if (closed_list_collection[ind].find(neighbour) == closed_list_collection[ind].end()) {
+                        list_collection[ind].push(neighbour);
+                        PDB_collection[ind][neighbour] = h;
                     }
                 }
             }
 
 
-            list.pop();
+            list_collection[ind].pop();
             size--;
         }
 
@@ -196,23 +212,27 @@ void PDBHeuristic::Dijkstra() { //This is actual breadth-first search with unit 
 
 int PDBHeuristic::compute_heuristic(const State& state)
 {
-    int r = rankState(state);
+    vector<int> pattern_rank(pattern_collection.size());
+    for (size_t i = 0; i < pattern_collection.size(); i++) {
+        pattern_rank.push_back(rankState(state, i));
+    }
 
-    // TODO implementation
-    int h = PDB[r];
-    if (h == -1) {
-        return DEAD_END;
+    // Canocial pattern database heuristic
+    int max = 0;
+    for (size_t i= 0;i<pattern_collection.size();i++) {
+        int h=PDB_collection[i][pattern_rank.at(i)];
+        if (h == -1) {
+            return DEAD_END;
+        }else if (h>max){
+            max = h;
+        }
     }
-    else {
-        return h;
-    }
+    return max;
 }
 
 bool PDBHeuristic::check_orthogonality() {
 
-    for (auto& pat : pattern_collection) {
-        applicable_ops_collection.push_back(check_applicable_ops(pat));
-    }
+
     for (int i = 0; i < applicable_ops_collection.size(); ++i) {
         for (int j = i + 1; j < applicable_ops_collection.size(); ++j){
             for (auto& op1 : applicable_ops_collection[i])

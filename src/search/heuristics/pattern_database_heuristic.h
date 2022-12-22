@@ -92,15 +92,23 @@ private:
             return false;
         }
     };
-    void Dijkstra();
-    std::vector<int> patterns;
+    void Dijkstra(int ind);
     std::vector<std::vector<int>> pattern_collection;
+    std::vector <std::vector<int>>N_ind_collection;
+    std::vector<std::vector<int> > PDB_collection;
     std::vector<std::vector<std::pair<Operator,int>>> applicable_ops_collection;
+    std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
+    std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
+    std::vector<std::queue <int>> list_collection;
+
     std::vector <int>N_ind;
-    int unrank(int r, int var);
-    int rank(std::vector<int>& s);
-    int rankState(const State& state);
+    std::vector<int> patterns;
     std::vector <int> PDB;
+    int unrank(int r, int var, int ind);
+    int rank(std::vector <int>& s, int ind);
+    int rankState(const State& state, int ind);
+    
+    
     bool goal_test(std::vector <int> &s);
     bool op_applicable(Operator& op, std::vector<int> &s);
     void computePDB();
