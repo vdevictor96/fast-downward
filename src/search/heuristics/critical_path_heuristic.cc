@@ -24,7 +24,7 @@ typedef std::map<varVals,int>::iterator facts_map_it;
 
 vector<int> combination;
 
-/* Code inspired in https://stackoverflow.com/questions/12991758/creating-all-possible-k-combinations-of-n-items-in-c*/
+/* Function inspired in https://stackoverflow.com/questions/12991758/creating-all-possible-k-combinations-of-n-items-in-c*/
 void create_combination(int offset, int k, facts_map &iterative_costs, const State &state) {
     if (k == 0) {
         for(int val = 0; val < g_variable_domain[combination[0]]; val++) {
@@ -45,6 +45,8 @@ void create_combination(int offset, int k, facts_map &iterative_costs, const Sta
         combination.pop_back();
     }
 }
+
+
 int CriticalPathHeuristic::compute_heuristic(const State &state) {
     /* Init vector with all the variable values with infinite */
     facts_map iterative_costs;
@@ -83,16 +85,14 @@ int CriticalPathHeuristic::compute_heuristic(const State &state) {
                         // if any is DEAD_END, then the action is not applicable
                         applicable = false;
                         break;
-                    } else { 
-                        if (cost > previous_cost) {
-                            previous_cost = cost;
-                        }
+                    } else if (cost > previous_cost) {
+                        previous_cost = cost;
                     }
                 } 
             }
             if (applicable) {
                 const vector<Effect> &effects = g_operators[i].get_effects();
-                 const int &action_cost = g_operators[i].get_cost();
+                const int &action_cost = g_operators[i].get_cost();
                 int possible_action_cost = action_cost + previous_cost;
                 /* Create pairs of effects + effects */
                 for (size_t e = 0; e < effects.size(); e++) {
