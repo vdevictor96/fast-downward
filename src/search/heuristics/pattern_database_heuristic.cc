@@ -176,14 +176,13 @@ void PDBHeuristic::initialize()
     else {
         // Use automatic method
         pattern_collection.push_back({ 1,4 });
+        computePDB();
         if (pattern_collection.size() > 1) {
             create_orthogonality_graph();
-            vector<vector<int>> max_cliques = find_cliques();
-            pattern_collection = max_cliques;
+            max_cliques = find_cliques();
         }
-        computePDB();
+        
 
-        // TODO implementation
     }
 
 }
@@ -229,23 +228,40 @@ int PDBHeuristic::compute_heuristic(const State& state)
     // Canocial pattern database heuristic
 
 
-    int max = 0;
-    for (size_t i = 0; i < pattern_collection.size(); i++) {
-        int h = PDB_collection[i][pattern_rank.at(i)];
+    if (!max_cliques.empty()) {
+        return compute_canonical_h(pattern_rank);
+    }
+    else {
+        int h = PDB_collection[0][pattern_rank.at(0)];
         if (h == -1) {
             return DEAD_END;
         }
-        else if (h > max) {
-            max = h;
+        else {
+            return h;
+        }
+    }
+
+
+}
+int PDBHeuristic::compute_canonical_h(vector<int> pattern_rank) {
+    int max = 0;
+    for (auto& clique : max_cliques) {
+        int h_sum = 0;
+        for (auto& pat_ind : clique) {
+            int h = PDB_collection[pat_ind][pattern_rank.at(pat_ind)];
+            if (h == -1) {
+                return DEAD_END;
+            }
+            h_sum += PDB_collection[pat_ind][pattern_rank.at(pat_ind)];
+        }
+        if (h_sum > max) {
+            max = h_sum;
         }
     }
     return max;
 }
 
 void PDBHeuristic::create_orthogonality_graph() {
-    for (auto& pat : pattern_collection) {
-        applicable_ops_collection.push_back(check_applicable_ops(pat));
-    }
 
     orthogonality_graph.resize(pattern_collection.size());
     //Create a matrix with the  patterns as nodes and arcs means orthogonality between patterns

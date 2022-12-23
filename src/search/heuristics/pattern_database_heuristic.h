@@ -120,6 +120,8 @@ private:
     bool is_clique(std::vector<int> set);
     std::vector<int> PDBHeuristic::clique(std::vector<int> set);
     std::vector<std::vector<bool>> orthogonality_graph;
+    std::vector<std::vector<int>> max_cliques;
+    int compute_canonical_h(std::vector<int> pattern_rank);
 
 
 
