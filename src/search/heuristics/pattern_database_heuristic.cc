@@ -88,12 +88,12 @@ void PDBHeuristic::apply_operation(Operator& op, vector <int>& s, vector<int>& p
 
 void PDBHeuristic::computePDB() {
 
+    N_ind.assign(pattern_collection.size(), 0);
     closed_list_collection.resize(pattern_collection.size());
     list_collection.resize(pattern_collection.size());
     adjList_collection.resize(pattern_collection.size());
-    N_ind.assign(pattern_collection.size(), 0);
     //N_ind_collection.resize(pattern_collection.size());
-
+    applicable_ops_collection.clear();
 
     vector <int> n_arr(g_variable_domain.size());
     fill(n_arr.begin(), n_arr.end(), 0);
@@ -163,6 +163,9 @@ void PDBHeuristic::initialize()
 {
     cout << "Initializing PDB heuristic..." << endl;
 
+
+   
+
     if (!m_test_pattern.empty()) {
         // Use m_test_pattern
         pattern_collection.push_back(m_test_pattern);
@@ -173,6 +176,11 @@ void PDBHeuristic::initialize()
     else {
         // Use automatic method
         pattern_collection.push_back({ 1,4 });
+        if (pattern_collection.size() > 1) {
+            create_orthogonality_graph();
+            vector<vector<int>> max_cliques = find_cliques();
+            pattern_collection = max_cliques;
+        }
         computePDB();
 
         // TODO implementation
@@ -219,6 +227,8 @@ int PDBHeuristic::compute_heuristic(const State& state)
     }
 
     // Canocial pattern database heuristic
+
+
     int max = 0;
     for (size_t i = 0; i < pattern_collection.size(); i++) {
         int h = PDB_collection[i][pattern_rank.at(i)];
@@ -233,6 +243,10 @@ int PDBHeuristic::compute_heuristic(const State& state)
 }
 
 void PDBHeuristic::create_orthogonality_graph() {
+    for (auto& pat : pattern_collection) {
+        applicable_ops_collection.push_back(check_applicable_ops(pat));
+    }
+
     orthogonality_graph.resize(pattern_collection.size());
     //Create a matrix with the  patterns as nodes and arcs means orthogonality between patterns
     vector<bool> row(pattern_collection.size(), true);
@@ -266,34 +280,48 @@ void PDBHeuristic::create_orthogonality_graph() {
 }
 vector<vector<int>> PDBHeuristic::find_cliques() {
     vector<vector<int>> cliques;
+    //Iterate for each node list. All edges that are found for a maximal clique of a given node are deleted
     for (int i = 0; i < orthogonality_graph.size(); i++) {
-        unordered_set <int> list;
-        list.insert(i);
+        vector <int> list;
+        list.push_back(i);
         for (int j = 0; j < orthogonality_graph[i].size(); j++) {
             if (orthogonality_graph[i][j] == true) {
-                list.insert(j);
+                //Insert all edges for the given node into a list
+                list.push_back(j);
             }
         }
+        cliques.push_back(clique(list));
     }
     return cliques;
 }
-unordered_set<int> PDBHeuristic::clique(unordered_set<int> set) {
-
-
+vector<int> PDBHeuristic::clique(vector<int> set) {
     if (is_clique(set)) {
         return set;
     }
-    unordered_set <int> temp = set;
-    //int max = 0;
-    for (auto& node : set) {
-        temp.erase(node);
-        temp = clique(temp);
+    vector <int> temp = set;
+    vector <int> temp2;
+    vector <int> max_clique;
+    int max = 0;
+    for (int i = 0; i < set.size();i++) {
+        temp.erase(temp.begin()+i);
+        temp2 = clique(temp);
+        if (temp2.size() > max) {
+            max = temp2.size();
+            max_clique = temp2;
+        }
+    }
+    //All edges that are contained in the max_clique can be deleted in the graph
+    for (auto& node1 : max_clique) {
+        for (auto& node2 : max_clique) {
+            orthogonality_graph[node1][node2] = false;
+        }
+
     }
 
-    return set;
+    return max_clique;
 
 }
-bool PDBHeuristic::is_clique(unordered_set<int> set) {
+bool PDBHeuristic::is_clique(vector<int> set) {
     for (auto& node1 : set) {
         for (auto& node2 : set) {
             if (!orthogonality_graph[node1][node2]) {

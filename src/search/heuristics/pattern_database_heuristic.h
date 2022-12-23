@@ -117,8 +117,8 @@ private:
     void create_orthogonality_graph();
     std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
     std::vector<std::vector<int>> find_cliques();
-    bool is_clique(std::unordered_set<int> set);
-    std::unordered_set<int> clique(std::unordered_set<int> set);
+    bool is_clique(std::vector<int> set);
+    std::vector<int> PDBHeuristic::clique(std::vector<int> set);
     std::vector<std::vector<bool>> orthogonality_graph;
 
 
