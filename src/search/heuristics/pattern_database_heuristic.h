@@ -69,9 +69,9 @@ protected:
     std::vector<int> m_test_pattern;
 
     virtual void initialize();
-    virtual int compute_heuristic(const State &state);
+    virtual int compute_heuristic(const State& state);
 public:
-    PDBHeuristic(const Options &options);
+    PDBHeuristic(const Options& options);
     ~PDBHeuristic() = default;
 
 private:
@@ -86,40 +86,41 @@ private:
     {
         size_t operator()(const int& x1, const int& x2) const
         {
-            if (x1 == x2) { 
-                return true; 
+            if (x1 == x2) {
+                return true;
             }
             return false;
         }
     };
-    void Dijkstra(int ind);
+    //data structures for regular pattern collections
     std::vector<std::vector<int>> pattern_collection;
     std::vector <std::vector<int>>N_ind_collection;
     std::vector<std::vector<int> > PDB_collection;
-    std::vector<std::vector<std::pair<Operator,int>>> applicable_ops_collection;
+    std::vector<std::vector<std::pair<Operator, int>>> applicable_ops_collection;
     std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
     std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
     std::vector<std::queue <int>> list_collection;
-
     std::vector <int>N_ind;
-    std::vector<int> patterns;
-    std::vector <int> PDB;
+
+    //functions for normal PDB
+    void Dijkstra(int ind);
     int unrank(int r, int var, int ind);
     int rank(std::vector <int>& s, int ind);
     int rankState(const State& state, int ind);
-    
-    
-    bool goal_test(std::vector <int> &s);
-    bool op_applicable(Operator& op, std::vector<int> &s);
+    bool goal_test(std::vector <int>& s, std::vector <int>& pat);
+    bool op_applicable(Operator& op, std::vector<int>& s, std::vector <int>& pat);
     void computePDB();
-    void apply_operation(Operator& op, std::vector <int>& s);
-    std::unordered_map <int, std::unordered_set <int, hashFunction, compare>> adjList;
-    std::queue <int> list;
-    std::unordered_set <int,hashFunction,compare> closed_list;
-    bool check_orthogonality();
-    std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
+    void apply_operation(Operator& op, std::vector <int>& s, std::vector<int>& pat);
 
- 
+
+    //For canonical heuristic and orthogonality
+    void create_orthogonality_graph();
+    std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
+    std::vector<std::vector<int>> find_cliques();
+    bool is_clique(std::unordered_set<int> set);
+    std::unordered_set<int> clique(std::unordered_set<int> set);
+    std::vector<std::vector<bool>> orthogonality_graph;
+
 
 
 };
