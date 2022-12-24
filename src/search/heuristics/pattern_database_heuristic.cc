@@ -22,6 +22,32 @@ PDBHeuristic::PDBHeuristic(const Options& opts)
         opts.get_list<int>("test_pattern") : vector<int>()) {
 
 }
+void PDBHeuristic::initialize()
+{
+    cout << "Initializing PDB heuristic..." << endl;
+    if (!m_test_pattern.empty()) {
+        // Use m_test_pattern
+        pattern_collection.push_back(m_test_pattern);
+        computePDB();
+
+        // TODO implementation
+    }
+    else {
+        // Use automatic method
+        pattern_collection.push_back({ 1,4 });
+        pattern_collection.push_back({ 2 });
+        pattern_collection.push_back({ 3 });
+        pattern_collection.push_back({ 4,5 });
+        computePDB();
+        if (pattern_collection.size() > 1) {
+            create_orthogonality_graph();
+            max_cliques = find_cliques();
+        }
+
+
+    }
+
+}
 int PDBHeuristic::unrank(int r, int var, int ind) {
     int temp = r / N_ind_collection[ind][var];
     return temp % g_variable_domain[var];
@@ -97,17 +123,17 @@ void PDBHeuristic::computePDB() {
 
     vector <int> n_arr(g_variable_domain.size());
     fill(n_arr.begin(), n_arr.end(), 0);
+    int ind_max = 0;
     for (auto& pat : pattern_collection) {
         int N = 1;
-        int count = 0;
         N_ind_collection.push_back(n_arr);
         for (auto& i : pat) {
-            N_ind_collection[count][i] = N;
+            N_ind_collection[ind_max][i] = N;
             N *= g_variable_domain[i]; //Compute 
 
         }
-        N_ind[count] = N;
-        count++;
+        N_ind[ind_max] = N;
+        ind_max++;
     }
 
 
@@ -123,6 +149,7 @@ void PDBHeuristic::computePDB() {
         applicable_ops_collection.push_back(check_applicable_ops(pat));
     }
     int ind = 0;
+    //for each pattern compute PDB
     for (auto& pat : pattern_collection) {
         vector <int> s(g_variable_domain.size());
         for (int r = 0; r < N_ind[ind]; ++r) {
@@ -157,35 +184,6 @@ void PDBHeuristic::computePDB() {
 
 }
 
-
-
-void PDBHeuristic::initialize()
-{
-    cout << "Initializing PDB heuristic..." << endl;
-
-
-   
-
-    if (!m_test_pattern.empty()) {
-        // Use m_test_pattern
-        pattern_collection.push_back(m_test_pattern);
-        computePDB();
-
-        // TODO implementation
-    }
-    else {
-        // Use automatic method
-        pattern_collection.push_back({ 1,4 });
-        computePDB();
-        if (pattern_collection.size() > 1) {
-            create_orthogonality_graph();
-            max_cliques = find_cliques();
-        }
-        
-
-    }
-
-}
 
 
 
@@ -263,7 +261,7 @@ int PDBHeuristic::compute_canonical_h(vector<int> pattern_rank) {
 
 void PDBHeuristic::create_orthogonality_graph() {
 
-    orthogonality_graph.resize(pattern_collection.size());
+    //orthogonality_graph.resize(pattern_collection.size());
     //Create a matrix with the  patterns as nodes and arcs means orthogonality between patterns
     vector<bool> row(pattern_collection.size(), true);
     for (int i = 0; i < pattern_collection.size(); i++) {
@@ -299,7 +297,6 @@ vector<vector<int>> PDBHeuristic::find_cliques() {
     //Iterate for each node list. All edges that are found for a maximal clique of a given node are deleted
     for (int i = 0; i < orthogonality_graph.size(); i++) {
         vector <int> list;
-        list.push_back(i);
         for (int j = 0; j < orthogonality_graph[i].size(); j++) {
             if (orthogonality_graph[i][j] == true) {
                 //Insert all edges for the given node into a list
@@ -321,6 +318,7 @@ vector<int> PDBHeuristic::clique(vector<int> set) {
     for (int i = 0; i < set.size();i++) {
         temp.erase(temp.begin()+i);
         temp2 = clique(temp);
+        //It should be irrelevant that we do not distinguish between equal sized cliques
         if (temp2.size() > max) {
             max = temp2.size();
             max_clique = temp2;
