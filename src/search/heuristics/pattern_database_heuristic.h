@@ -97,9 +97,9 @@ private:
     std::vector <std::vector<int>>N_ind_collection;
     std::vector<std::vector<int> > PDB_collection;
     std::vector<std::vector<std::pair<Operator, int>>> applicable_ops_collection;
-    std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
+    std::unordered_set<int, hashFunction, compare > closed_list;
     std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
-    std::vector<std::queue <int>> list_collection;
+    std::queue<int> open_list;
     std::vector <int>N_ind;
 
     //functions for normal PDB

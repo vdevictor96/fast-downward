@@ -115,12 +115,14 @@ void PDBHeuristic::apply_operation(Operator& op, vector <int>& s, vector<int>& p
 void PDBHeuristic::computePDB() {
 
     N_ind.assign(pattern_collection.size(), 0);
-    closed_list_collection.resize(pattern_collection.size());
-    list_collection.resize(pattern_collection.size());
     adjList_collection.resize(pattern_collection.size());
-    //N_ind_collection.resize(pattern_collection.size());
-    applicable_ops_collection.clear();
 
+    closed_list.clear();
+    while (!open_list.empty()) {
+        open_list.pop();
+    }
+
+    //Init vectors for ranking/unranking/perfect hach for each pattern
     vector <int> n_arr(g_variable_domain.size());
     fill(n_arr.begin(), n_arr.end(), 0);
     int ind_max = 0;
@@ -158,8 +160,8 @@ void PDBHeuristic::computePDB() {
             }
             if (goal_test(s, pat)) {
                 PDB_collection[ind][r] = 0;
-                closed_list_collection[ind].insert(r);
-                list_collection[ind].push(r);
+                closed_list.insert(r);
+                open_list.push(r);
             }
             for (auto& op : applicable_ops_collection[ind]) {
                 if (op_applicable(op.first, s, pat)) {
@@ -191,23 +193,23 @@ void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search wit
     int h = 0;
 
 
-    while (!list_collection[ind].empty()) {
+    while (!open_list.empty()) {
         h++;
-        int size = list_collection[ind].size();
+        int size = open_list.size();
         while (size > 0) {
-            int front = list_collection[ind].front();
-            closed_list_collection[ind].insert(front);
+            int front = open_list.front();
+            closed_list.insert(front);
             if (adjList_collection[ind].find(front) != adjList_collection[ind].end()) {
                 for (auto& neighbour : adjList_collection[ind].at(front)) {
-                    if (closed_list_collection[ind].find(neighbour) == closed_list_collection[ind].end()) {
-                        list_collection[ind].push(neighbour);
+                    if (closed_list.find(neighbour) == closed_list.end()) {
+                        open_list.push(neighbour);
                         PDB_collection[ind][neighbour] = h;
                     }
                 }
             }
 
 
-            list_collection[ind].pop();
+            open_list.pop();
             size--;
         }
 
