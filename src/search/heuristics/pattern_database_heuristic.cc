@@ -34,10 +34,8 @@ void PDBHeuristic::initialize()
     }
     else {
         // Use automatic method
-        pattern_collection.push_back({ 1,4 });
-        pattern_collection.push_back({ 2 });
-        pattern_collection.push_back({ 3 });
-        pattern_collection.push_back({ 4,5 });
+       // naive_pattern_selection();
+        pattern_collection.push_back({ 1,2 });
         computePDB();
         if (pattern_collection.size() > 1) {
             create_orthogonality_graph();
@@ -117,10 +115,6 @@ void PDBHeuristic::computePDB() {
     N_ind.assign(pattern_collection.size(), 0);
     adjList_collection.resize(pattern_collection.size());
 
-    closed_list.clear();
-    while (!open_list.empty()) {
-        open_list.pop();
-    }
 
     //Init vectors for ranking/unranking/perfect hach for each pattern
     vector <int> n_arr(g_variable_domain.size());
@@ -214,6 +208,10 @@ void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search wit
         }
 
 
+    }
+    closed_list.clear();
+    while (!open_list.empty()) {
+        open_list.pop();
     }
 }
 
@@ -346,6 +344,11 @@ bool PDBHeuristic::is_clique(vector<int> set) {
         }
     }
     return true;
+}
+void PDBHeuristic::naive_pattern_selection() {
+    for (int i = 0; i < g_variable_domain.size();i++) {
+        pattern_collection.push_back({ i });
+    }
 }
 
 

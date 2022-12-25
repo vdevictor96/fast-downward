@@ -122,6 +122,7 @@ private:
     std::vector<std::vector<bool>> orthogonality_graph;
     std::vector<std::vector<int>> max_cliques;
     int compute_canonical_h(std::vector<int> pattern_rank);
+    void naive_pattern_selection();
 
 
 
