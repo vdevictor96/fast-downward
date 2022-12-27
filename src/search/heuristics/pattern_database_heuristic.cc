@@ -34,15 +34,12 @@ void PDBHeuristic::initialize()
     }
     else {
         // Use automatic method
-       // naive_pattern_selection();
-        pattern_collection.push_back({ 1,2 });
+       naive_pattern_selection();
         computePDB();
         if (pattern_collection.size() > 1) {
             create_orthogonality_graph();
             max_cliques = find_cliques();
         }
-
-
     }
 
 }
@@ -53,7 +50,8 @@ int PDBHeuristic::unrank(int r, int var, int ind) {
 int PDBHeuristic::rankState(const State& state, int ind) {
     int sum = 0;
     for (auto& i : pattern_collection[ind]) {
-        sum = N_ind_collection[ind][i] * state[i];
+        int temp = state[i];
+        sum = N_ind_collection[ind][i] * temp;
     }
     return sum;
 }
@@ -80,6 +78,9 @@ vector <pair<Operator, int>> PDBHeuristic::check_applicable_ops(vector <int>& pa
     int count = 0;
     for (auto& op : g_operators) {
         for (auto& eff : op.get_effects()) {
+            if (eff.var == 10 || eff.var == 8 || eff.var == 6||eff.var==4) {
+                cout << "eq!" << endl;
+            }
             if (find(pat.begin(), pat.end(), eff.var) != pat.end()) {
                 pattern_ops.push_back(make_pair(op, count));
                 break;
@@ -218,7 +219,7 @@ void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search wit
 
 int PDBHeuristic::compute_heuristic(const State& state)
 {
-    vector<int> pattern_rank(pattern_collection.size());
+    vector<int> pattern_rank;
     for (size_t i = 0; i < pattern_collection.size(); i++) {
         pattern_rank.push_back(rankState(state, i));
     }
@@ -235,6 +236,7 @@ int PDBHeuristic::compute_heuristic(const State& state)
             return DEAD_END;
         }
         else {
+            cout << h << endl;
             return h;
         }
     }
@@ -346,9 +348,11 @@ bool PDBHeuristic::is_clique(vector<int> set) {
     return true;
 }
 void PDBHeuristic::naive_pattern_selection() {
-    for (int i = 0; i < g_variable_domain.size();i++) {
-        pattern_collection.push_back({ i });
+    vector <int> pat;
+    for (int i = 0; i < g_goal.size();i+=5) {
+        pat.push_back(g_goal[i].first);
     }
+    pattern_collection.push_back(pat);
 }
 
 
