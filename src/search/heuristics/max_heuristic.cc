@@ -6,75 +6,207 @@
 #include "../plugin.h"
 #include "../state.h"
 
+#include <map>
+#include <unordered_set>
+#include <queue>
+
+
+
 
 using namespace std;
 
-MaxHeuristic::MaxHeuristic(const Options &opts)
+MaxHeuristic::MaxHeuristic(const Options& opts)
     : Heuristic(opts) {
 }
 
 void MaxHeuristic::initialize() {
     cout << "Initializing max heuristic..." << endl;
+    /*Init goal set to quickly find out whether an achieved fact is a goal fact*/
+
+    /*
+    for (int i = 0; i < g_goal.size(); ++i) {
+        goal_set.insert(g_goal[i]);
+        goal_map[g_goal[i].first] = g_goal[i].second;
+    }*/
+    int sum = 0;
+    for (auto& g : g_variable_domain) {
+        hash_arr.emplace_back(sum);
+        sum += g;
+    }
+    fact_set.resize(hash_arr.back() + g_variable_domain.back());
+
+
+    for (int i = 0; i < hash_arr.back() + g_variable_domain.back(); i++) {
+        unordered_set <int> app_ops;
+        fact_set.emplace_back(make_pair(false, app_ops));
+    }
+    //For each operator add its identifier to the fact that is added by the operator 
+    for (int i = 0; i < g_operators.size(); i++) {
+        const vector<Condition>& preconditions = g_operators[i].get_preconditions();
+        for (auto& pre : preconditions) {
+            fact_set[compute_hash(make_pair(pre.var, pre.val))].second.insert(i);
+        }
+    }
+
+    counter.resize(g_operators.size());
+
+
 }
 
 
-int MaxHeuristic::compute_heuristic(const State &state) {
-    /* Init vector with all the variable values with infinite */
-    std::vector<std::vector<int> > iterative_costs;
-    iterative_costs.resize(g_variable_domain.size());
-    for (unsigned var = 0; var < g_variable_domain.size(); var++) {
-        iterative_costs[var].resize(g_variable_domain[var], DEAD_END);
-        iterative_costs[var][state[var]] = 0;
+
+
+void MaxHeuristic::init_layers_and_counter(const State& state) {
+    /*Init counter with zero and action layer and goal layer with infinity represented as -1*/
+    req_goal = g_goal.size();
+
+    fill(counter.begin(), counter.end() - 1, 0);
+
+    for (int i = 0; i < g_variable_domain.size(); i++) {
+        pair <int, int> state_fact = make_pair(i, state[i]);
+        fact_schedule.push(state_fact);
+        fact_set[compute_hash(state_fact)].first = true;
+        /*Insert fact to goal layer if it is contained in the goal_set*/
+        /*
+        if (goal_set.find(make_pair(i, state[i])) != goal_set.end()) {
+            req_goal--;
+        }*/
+        /*
+        if (goal_map.find(i) != goal_map.end()) {
+            if (goal_map.at(i) == state[i]) {
+                req_goal--;
+            }
+        }*/
+
+        for (auto& goal : g_goal) {
+            if (goal == state_fact) {
+                req_goal--;
+            }
+        }
+
     }
-    /* Begin iterations */
-    bool state_changed = true;
-    while (state_changed) {
-        state_changed = false;
-        // vector<Operator>::iterator it = g_operators.begin();
-        // while (it != g_operators.end()) {
-        for (size_t i = 0; i < g_operators.size(); i++) {
-            const vector<Condition> &preconditions = g_operators[i].get_preconditions();
-            bool applicable = true;
-            int previous_cost = 0;
-            for (size_t p = 0; p < preconditions.size(); p++) {
-                if (iterative_costs[preconditions[p].var][preconditions[p].val] == DEAD_END) {
-                    applicable = false;
+
+}
+int MaxHeuristic::compute_hash(pair<int, int>& x)
+{
+    return hash_arr[x.first] + x.second;
+}
+
+void MaxHeuristic::achieve_facts(int& pos) {
+
+    const vector<Effect>& effects = g_operators[pos].get_effects();
+    for (auto& eff : effects) {
+        pair<int, int> eff_fact = make_pair(eff.var, eff.val);
+        if (!fact_set[compute_hash(eff_fact)].first) {
+            /* Fact is achieved for the first time. Schedule Fact and add to seen facts*/
+
+            fact_set[compute_hash(eff_fact)].first = true;
+            fact_schedule.push(eff_fact);
+
+            for (auto& goal : g_goal) {
+                if (eff_fact == goal) {
+                    req_goal--;
                     break;
-                } else {
-                    int cost = iterative_costs[preconditions[p].var][preconditions[p].val];
-                    if (cost > previous_cost) {
-                        previous_cost = cost;
-                    }
                 }
             }
-            if (applicable) {
-                const vector<Effect> &effects = g_operators[i].get_effects();
-                const int &possible_action_cost = g_operators[i].get_cost() + previous_cost;
-                for (size_t e = 0; e < effects.size(); e++) {
-                    if (iterative_costs[effects[e].var][effects[e].val] == DEAD_END || possible_action_cost < iterative_costs[effects[e].var][effects[e].val]) {
-                        state_changed = true;
-                        iterative_costs[effects[e].var][effects[e].val] = possible_action_cost;
-                    }
-                    
+            /*
+            if (goal_set.find(eff_fact) != goal_set.end()) {
+                // fact is goal fact
+                req_goal--;
+            }*/
+            /*
+            for (auto& goal : g_goal) {
+                if (goal == eff_fact) {
+                    req_goal--;
                 }
-            }
+            }*/
         }
     }
-    int max_cost = DEAD_END;
-    for (size_t g = 0; g < g_goal.size(); g++) {
-        int cost = iterative_costs[g_goal[g].first][g_goal[g].second];
-        if (cost == DEAD_END){
-            return DEAD_END;
-        }
-        else if (cost > max_cost) {
-             max_cost = cost;
-        }
-    }
-    return max_cost;
 }
 
 
-static Heuristic *_parse(OptionParser &parser) {
+void MaxHeuristic::small_iteration() {
+    int schedule_size = fact_schedule.size();
+    pair<int, int> fact;
+    while (schedule_size != 0) {
+        schedule_size--;
+        fact = fact_schedule.front();
+        fact_schedule.pop();
+
+
+        for (auto pre_op : fact_set[compute_hash(fact)].second) {
+            int pre_size = g_operators[pre_op].get_preconditions().size();
+            if (counter[pre_op] < pre_size) {
+                counter[pre_op]++;
+                if (counter[pre_op] == pre_size) {
+                    achieve_facts(pre_op);
+                }
+            }
+        }
+    }
+
+}
+
+
+
+bool MaxHeuristic::doStep() {
+    timestep++;
+    small_iteration();
+    int q_size = fact_schedule.size(); /*Number of new scheduled facts for given iteration*/
+    if (req_goal == 0 || q_size == 0) {
+        return false; /*No new facts were scheduled, so we can't achieve new facts OR we have achieved all goal facts*/
+    }
+    return true; /*Facts were scheduled and not all goal facts are achieved*/
+
+}
+void MaxHeuristic::queue_clear(queue<pair<int, int>>& q) {
+    while (!q.empty()) {
+        q.pop();
+    }
+}
+void MaxHeuristic::op_queue_clear(queue< int>& q)
+{
+    while (!q.empty()) {
+        q.pop();
+    }
+}
+
+
+
+int MaxHeuristic::compute_heuristic(const State& state) {
+
+
+    //Clear and reinit relevant data structures
+    queue_clear(fact_schedule);
+    op_queue_clear(operator_queue);
+    //fill(fact_set.begin(), fact_set.end() - 1, false);
+
+    //Set fact set to zero but keep op identifiers
+    for (auto& fact : fact_set) {
+        fact.first = false;
+    }
+    timestep = 0;
+    req_goal = g_goal.size();
+    init_layers_and_counter(state);
+
+
+
+    bool progress = true;
+    while (progress) {
+        progress = doStep();
+    }
+    if (req_goal > 0) {
+        return DEAD_END; /* Not all goal facts could be achieved*/
+    }
+    else {
+
+        return timestep;
+    }
+
+}
+
+
+static Heuristic* _parse(OptionParser& parser) {
     Heuristic::add_options_to_parser(parser);
     Options opts = parser.parse();
     if (parser.dry_run())
@@ -83,4 +215,4 @@ static Heuristic *_parse(OptionParser &parser) {
         return new MaxHeuristic(opts);
 }
 
-//static Plugin<Heuristic> _plugin("hmax", _parse);
+static Plugin<Heuristic> _plugin("hmax", _parse);
