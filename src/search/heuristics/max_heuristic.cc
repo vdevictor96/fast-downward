@@ -23,11 +23,12 @@ void MaxHeuristic::initialize() {
     cout << "Initializing max heuristic..." << endl;
     /*Init goal set to quickly find out whether an achieved fact is a goal fact*/
 
-    /*
+    goal_set.resize(g_variable_domain.size());
+    fill(goal_set.begin(), goal_set.end(), -1);
+
     for (int i = 0; i < g_goal.size(); ++i) {
-        goal_set.insert(g_goal[i]);
-        goal_map[g_goal[i].first] = g_goal[i].second;
-    }*/
+        goal_set[g_goal[i].first] = g_goal[i].second;
+    }
     int sum = 0;
     for (auto& g : g_variable_domain) {
         hash_arr.emplace_back(sum);
@@ -66,23 +67,11 @@ void MaxHeuristic::init_layers_and_counter(const State& state) {
         pair <int, int> state_fact = make_pair(i, state[i]);
         fact_schedule.push(state_fact);
         fact_set[compute_hash(state_fact)].first = true;
-        /*Insert fact to goal layer if it is contained in the goal_set*/
-        /*
-        if (goal_set.find(make_pair(i, state[i])) != goal_set.end()) {
-            req_goal--;
-        }*/
-        /*
-        if (goal_map.find(i) != goal_map.end()) {
-            if (goal_map.at(i) == state[i]) {
-                req_goal--;
-            }
-        }*/
 
-        for (auto& goal : g_goal) {
-            if (goal == state_fact) {
-                req_goal--;
-            }
+        if (goal_set[i] == state[i]) {
+            req_goal--;
         }
+
 
     }
 
@@ -103,23 +92,9 @@ void MaxHeuristic::achieve_facts(int& pos) {
             fact_set[compute_hash(eff_fact)].first = true;
             fact_schedule.push(eff_fact);
 
-            for (auto& goal : g_goal) {
-                if (eff_fact == goal) {
-                    req_goal--;
-                    break;
-                }
-            }
-            /*
-            if (goal_set.find(eff_fact) != goal_set.end()) {
-                // fact is goal fact
+            if (goal_set[eff.var] == eff.val) {
                 req_goal--;
-            }*/
-            /*
-            for (auto& goal : g_goal) {
-                if (goal == eff_fact) {
-                    req_goal--;
-                }
-            }*/
+            }
         }
     }
 }

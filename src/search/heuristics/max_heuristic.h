@@ -47,32 +47,9 @@ private:
     int timestep;
     int req_goal;
     std::vector <std::pair<bool, std::unordered_set<int>>> fact_set;
-    std::unordered_map<int, int> goal_map;
 
 
-
-
-    struct hashGoal
-    {
-        size_t operator()(const std::pair<int, int>& x) const
-        {
-            return x.first;
-        }
-    };
-    struct compare
-    {
-        size_t operator()(const std::pair<int, int>& x1, const std::pair<int, int>& x2) const
-        {
-            if (x1.first == x2.first) {
-                if (x1.second == x2.second) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
-
-    std::unordered_set <std::pair<int, int>, hashGoal, compare> goal_set;
+    std::vector <int> goal_set;
 
 };
 
