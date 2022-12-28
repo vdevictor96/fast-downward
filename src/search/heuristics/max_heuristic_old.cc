@@ -83,4 +83,4 @@ static Heuristic *_parse(OptionParser &parser) {
         return new MaxHeuristic(opts);
 }
 
-static Plugin<Heuristic> _plugin("hmax", _parse);
+//static Plugin<Heuristic> _plugin("hmax", _parse);

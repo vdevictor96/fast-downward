@@ -1,5 +1,5 @@
-#ifndef MAX_HEURISTIC_H
-#define MAX_HEURISTIC_H
+//#ifndef MAX_HEURISTIC_H
+//#define MAX_HEURISTIC_H
 
 #include "../heuristic.h"
 
@@ -28,4 +28,4 @@ public:
     ~MaxHeuristic() = default;
 };
 
-#endif
+//#endif
