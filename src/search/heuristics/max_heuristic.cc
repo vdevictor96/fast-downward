@@ -17,6 +17,8 @@ using namespace std;
 
 MaxHeuristic::MaxHeuristic(const Options& opts)
     : Heuristic(opts) {
+    req_goal = g_goal.size();
+    timestep = 0;
 }
 
 void MaxHeuristic::initialize() {
@@ -45,7 +47,8 @@ void MaxHeuristic::initialize() {
     for (int i = 0; i < g_operators.size(); i++) {
         const vector<Condition>& preconditions = g_operators[i].get_preconditions();
         for (auto& pre : preconditions) {
-            fact_set[compute_hash(make_pair(pre.var, pre.val))].second.insert(i);
+            pair <int, int> pre_fact = make_pair(pre.var, pre.val);
+            fact_set[compute_hash(pre_fact)].second.insert(i);
         }
     }
 
