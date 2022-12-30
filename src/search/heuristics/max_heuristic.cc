@@ -39,12 +39,12 @@ void MaxHeuristic::initialize() {
     fact_set.resize(hash_arr.back() + g_variable_domain.back());
 
 
-    for (int i = 0; i < hash_arr.back() + g_variable_domain.back(); i++) {
+    for (int i = 0; i < hash_arr.back() + g_variable_domain.back(); ++i) {
         unordered_set <int> app_ops;
         fact_set.emplace_back(make_pair(false, app_ops));
     }
     //For each operator add its identifier to the fact that is added by the operator 
-    for (int i = 0; i < g_operators.size(); i++) {
+    for (int i = 0; i < g_operators.size(); ++i) {
         const vector<Condition>& preconditions = g_operators[i].get_preconditions();
         for (auto& pre : preconditions) {
             pair <int, int> pre_fact = make_pair(pre.var, pre.val);
@@ -66,7 +66,7 @@ void MaxHeuristic::init_layers_and_counter(const State& state) {
 
     fill(counter.begin(), counter.end() - 1, 0);
 
-    for (int i = 0; i < g_variable_domain.size(); i++) {
+    for (int i = 0; i < g_variable_domain.size(); ++i) {
         pair <int, int> state_fact = make_pair(i, state[i]);
         fact_schedule.push(state_fact);
         fact_set[compute_hash(state_fact)].first = true;
@@ -114,6 +114,8 @@ void MaxHeuristic::small_iteration() {
 
         for (auto pre_op : fact_set[compute_hash(fact)].second) {
             int pre_size = g_operators[pre_op].get_preconditions().size();
+            assert(pre_size > 0);
+            assert(g_operators[pre_op].get_cost() == 1);
             if (counter[pre_op] < pre_size) {
                 counter[pre_op]++;
                 if (counter[pre_op] == pre_size) {
@@ -167,9 +169,11 @@ int MaxHeuristic::compute_heuristic(const State& state) {
     req_goal = g_goal.size();
     init_layers_and_counter(state);
 
-
-
     bool progress = true;
+    if (req_goal == 0 ||fact_schedule.size()==0) {
+        progress=false;
+    }
+
     while (progress) {
         progress = doStep();
     }
@@ -177,7 +181,6 @@ int MaxHeuristic::compute_heuristic(const State& state) {
         return DEAD_END; /* Not all goal facts could be achieved*/
     }
     else {
-
         return timestep;
     }
 
