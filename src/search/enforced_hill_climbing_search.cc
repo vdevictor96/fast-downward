@@ -41,8 +41,7 @@ void EnforcedHillClimbingSearch::initialize()
         cout << "Initial state is a dead end, no solution" << endl;
         if (heuristic->dead_ends_are_reliable()) {
             exit_with(EXIT_UNSOLVABLE);
-        }
-        else {
+        } else {
             exit_with(EXIT_UNSOLVED_INCOMPLETE);
         }
     }
@@ -140,41 +139,43 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     // from the old state to the new state to plan! Otherwise, the computed plan
     // will not be valid!
 
-    std::deque<State> open_list; // the breadth-first list
-    std::vector<State> successors;
-    std::vector<State> visited;
+    std::deque<State> open_list; // the breadth-first list also called frontier
     std::vector<const Operator*> ops; // all available operations for the current state
-
+    std::deque<std::vector<const Operator*>> plans;
     // intitialize
     open_list.push_back(current_state);
-
+    plans.push_back(plan);
     // only stop if there is no more possibilities
     while (!open_list.empty()) {
-        // pop open_list
-        current_state = open_list.front();
-        visited.push_back(current_state);
+        current_state = open_list.front(); // initialize new current_state for hill_climbing algorithm
+        plan = plans.front(); // initialize plan for the current_state
         open_list.pop_front();
+        plans.pop_front();
         ops.clear();
         get_applicable_operators(current_state, ops); // get the available operations
-        plan.push_back(ops.back()); // initialize the plan with the first state
-        for (int i = 0; i < ops.size(); i++) {
+        for (int i = 0; i < ops.size(); i++) { // loop through every possible operation
             State next_state = g_state_registry->get_successor_state(current_state, *ops[i]); // state after applying the operator
-            //if (!(std::find(visited.begin(), visited.end(), next_state) != visited.end())) { // check if the state have been visited before -> here error
             evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
-            if (heuristic->get_heuristic() < current_h) { // if the heuristic is lower, update best heuristic
-                current_h = heuristic->get_heuristic();
+            plan.push_back(ops[i]); // create plan for next_state
+            if (heuristic->get_heuristic() < current_h) {
+                current_h = heuristic->get_heuristic(); // update current_h
                 open_list.clear();
-                open_list.insert(open_list.end(), successors.begin(), successors.end());
-                open_list.push_back(current_state);
-                plan.pop_back();
-                plan.push_back(ops[i]);
-                if (test_goal(next_state)) {
-                    assert(is_plan(plan)); // plan saving is wrong! But I am finding a selution! And it is faster than wastar
+                open_list.push_back(current_state); // next_state will be expanded as next
+                plans.clear();
+                plans.push_back(plan);
+                i = ops.size(); // stop iterating successors
+                if (test_goal(next_state)) { // next_state is goal state
+                    cout << "Found a goal state!" << endl;
+                    assert(is_plan(plan));
                     set_plan(plan);
                     return SOLVED;
                 }
             }
-            open_list.push_back(next_state); // add to frontiers / open_nodes
+            else {
+                open_list.push_back(next_state); // no new best heuristic have been found, breath first search will continue 
+                plans.push_back(plan);
+            }
+            plan.pop_back(); // reset plan to current_state plan.
         }
     }
     return FAILED;
@@ -219,3 +220,4 @@ static SearchEngine* _parse(OptionParser& parser)
 }
 
 static Plugin<SearchEngine> _plugin("ehc", _parse);
+
