@@ -10,26 +10,28 @@
 using namespace std;
 
 EnforcedHillClimbingSearch::EnforcedHillClimbingSearch(
-    const Options &opts)
+    const Options& opts)
     : SearchEngine(opts),
-      helpful_actions(opts.get<bool>("helpful_actions")),
-      heuristic(opts.get<Heuristic * >("heuristic")),
-      current_state(g_initial_state()),
-      current_g(0)
+    helpful_actions(opts.get<bool>("helpful_actions")),
+    heuristic(opts.get<Heuristic* >("heuristic")),
+    current_state(g_initial_state()),
+    current_g(0)
 {
     search_progress.add_heuristic(heuristic);
 }
 
 EnforcedHillClimbingSearch::~EnforcedHillClimbingSearch()
 {
+
+
 }
 
 void EnforcedHillClimbingSearch::initialize()
 {
     assert(heuristic != NULL);
     cout << "Conducting Enforced Hill Climbing Search" << endl;
-    
-    if (helpful_actions){
+
+    if (helpful_actions) {
         cout << "Performing helpful actions pruning" << endl;
     }
 
@@ -39,7 +41,8 @@ void EnforcedHillClimbingSearch::initialize()
         cout << "Initial state is a dead end, no solution" << endl;
         if (heuristic->dead_ends_are_reliable()) {
             exit_with(EXIT_UNSOLVABLE);
-        } else {
+        }
+        else {
             exit_with(EXIT_UNSOLVED_INCOMPLETE);
         }
     }
@@ -49,8 +52,8 @@ void EnforcedHillClimbingSearch::initialize()
     current_h = heuristic->get_heuristic();
 }
 
-void EnforcedHillClimbingSearch::evaluate(const State &parent,
-        const Operator *op, const State &state)
+void EnforcedHillClimbingSearch::evaluate(const State& parent,
+    const Operator* op, const State& state)
 {
     search_progress.inc_evaluated_states();
 
@@ -65,8 +68,8 @@ void EnforcedHillClimbingSearch::evaluate(const State &parent,
     search_progress.check_h_progress(current_g);
 }
 
-void EnforcedHillClimbingSearch::get_applicable_operators(const State &state,
-        vector<const Operator *> &ops)
+void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
+    vector<const Operator*>& ops)
 {
     g_successor_generator->generate_applicable_ops(state, ops);
 
@@ -77,9 +80,20 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State &state,
     // Use the helpful_actions class variable to determine whether helpful
     // actions pruning is enabled or not.
 
+    //Pruning possiblities:
+    //- Symmetry breaking
+    //- Duplicate deletion
+    /*
+    for (const Operator* op : plan) {
+
+        auto it = std::find(ops.begin(), ops.end(), op);
+        if (it != plan.end()) {
+            plan.erase(it);
+        }
+    }*/
 
 #ifndef NDEBUG
-    for (const Operator *op : ops) {
+    for (const Operator* op : ops) {
         assert(op->is_applicable(state));
     }
 #endif
@@ -126,22 +140,50 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     // from the old state to the new state to plan! Otherwise, the computed plan
     // will not be valid!
 
-    while (!test_goal(current_state)) {
-        // TODO implement this
+    std::deque<State> open_list; // the breadth-first list
+    std::vector<State> successors;
+    std::vector<State> visited;
+    std::vector<const Operator*> ops; // all available operations for the current state
 
+    // intitialize
+    open_list.push_back(current_state);
 
-
+    // only stop if there is no more possibilities
+    while (!open_list.empty()) {
+        // pop open_list
+        current_state = open_list.front();
+        visited.push_back(current_state);
+        open_list.pop_front();
+        ops.clear();
+        get_applicable_operators(current_state, ops); // get the available operations
+        plan.push_back(ops.back()); // initialize the plan with the first state
+        for (int i = 0; i < ops.size(); i++) {
+            State next_state = g_state_registry->get_successor_state(current_state, *ops[i]); // state after applying the operator
+            //if (!(std::find(visited.begin(), visited.end(), next_state) != visited.end())) { // check if the state have been visited before -> here error
+            evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
+            if (heuristic->get_heuristic() < current_h) { // if the heuristic is lower, update best heuristic
+                current_h = heuristic->get_heuristic();
+                open_list.clear();
+                open_list.insert(open_list.end(), successors.begin(), successors.end());
+                open_list.push_back(current_state);
+                plan.pop_back();
+                plan.push_back(ops[i]);
+                if (test_goal(next_state)) {
+                    assert(is_plan(plan)); // plan saving is wrong! But I am finding a selution! And it is faster than wastar
+                    set_plan(plan);
+                    return SOLVED;
+                }
+            }
+            open_list.push_back(next_state); // add to frontiers / open_nodes
+        }
     }
-
-    assert(is_plan(plan));
-    set_plan(plan);
-    return SOLVED;
+    return FAILED;
 }
 
-auto EnforcedHillClimbingSearch::is_plan(const Plan &plan) -> bool
+auto EnforcedHillClimbingSearch::is_plan(const Plan& plan) -> bool
 {
     auto state = g_initial_state();
-    for (const auto *op : plan) {
+    for (const auto* op : plan) {
         // verify that all operators in the plan are applicable
         if (!op->is_applicable(state))
             return false;
@@ -156,20 +198,20 @@ void EnforcedHillClimbingSearch::statistics() const
     search_progress.print_statistics();
 }
 
-static SearchEngine *_parse(OptionParser &parser)
+static SearchEngine* _parse(OptionParser& parser)
 {
     parser.document_synopsis("Hill-climbing", "");
-    parser.add_option<Heuristic *>("eval", "evaluator for h-value");
+    parser.add_option<Heuristic*>("eval", "evaluator for h-value");
     parser.add_option<bool>("helpful_actions", "", "false");
 
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
-    EnforcedHillClimbingSearch *engine = 0;
+    EnforcedHillClimbingSearch* engine = 0;
     if (!parser.dry_run()) {
-        Heuristic *eval = opts.get<Heuristic *>("eval");
+        Heuristic* eval = opts.get<Heuristic*>("eval");
         opts.set("heuristic", eval);
-        
+
         engine = new EnforcedHillClimbingSearch(opts);
     }
 
