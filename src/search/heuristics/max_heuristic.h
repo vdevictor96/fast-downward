@@ -40,12 +40,13 @@ private:
     void small_iteration();
     bool doStep();
     void queue_clear(std::queue<std::pair<int, int>>& q);
+    void op_queue_clear(std::queue<int>& q);
     std::vector<int> counter;
     std::queue <std::pair<int, int>> fact_schedule;
+    std::queue <int> operator_queue;
     int timestep;
     int req_goal;
-    int count;
-    std::vector <std::pair<int, std::unordered_set<int>>> fact_set;
+    std::vector <std::pair<bool, std::unordered_set<int>>> fact_set;
 
 
     std::vector <int> goal_set;
