@@ -44,7 +44,6 @@ private:
     std::queue <std::pair<int, int>> fact_schedule;
     int timestep;
     int req_goal;
-    int count;
     std::vector <std::pair<int, std::unordered_set<int>>> fact_set;
 
 

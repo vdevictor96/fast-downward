@@ -27,7 +27,6 @@ void MaxHeuristic::initialize() {
 
     goal_set.resize(g_variable_domain.size());
     fill(goal_set.begin(), goal_set.end(), -1);
-    count = 0;
 
     for (int i = 0; i < g_goal.size(); ++i) {
         goal_set[g_goal[i].first] = g_goal[i].second;
@@ -147,9 +146,6 @@ void MaxHeuristic::queue_clear(queue<pair<int, int>>& q) {
 }
 
 int MaxHeuristic::compute_heuristic(const State& state) {
-    count++;
-
-
     //Clear and reinit relevant data structures
     queue_clear(fact_schedule);
 
