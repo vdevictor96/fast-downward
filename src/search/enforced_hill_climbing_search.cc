@@ -79,25 +79,6 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
     // Use the helpful_actions class variable to determine whether helpful
     // actions pruning is enabled or not.
 
-    //Pruning possiblities:
-    //- Symmetry breaking
-    //- Duplicate deletion
-    /*
-    std::vector<int> delete_this;
-  
-    for (int y = 0; y < plan.size(); y++) {
-        for (int x = 0; x < ops.size(); x++) {
-            if (ops[x] == plan[y]) {
-                delete_this.push_back(x);
-            }
-        }
-    }
-    std::reverse(ops.begin(), ops.end());
-    for (int z: delete_this) {
-        ops.erase(ops.begin()+z);
-    }
-    */
-
 #ifndef NDEBUG
     for (const Operator* op : ops) {
         assert(op->is_applicable(state));
@@ -181,7 +162,6 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 }
                 if (test_goal(next_state)) { // next_state is goal state
                     cout << "Found a goal state!" << endl;
-                    cout << plan << endl;
                     assert(is_plan(plan));
                     set_plan(plan);
                     return SOLVED;
