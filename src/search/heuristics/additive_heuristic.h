@@ -2,7 +2,11 @@
 #define ADDITIVE_HEURISTIC_H
 
 #include "../heuristic.h"
-
+#include <vector>
+#include <unordered_set>
+#include <unordered_map>
+#include <queue>
+#include "../operator.h"
 // Usage example: the command line option for using h^{add} in astar is
 // ./fast-downward.py [path-to-PDDL-problem-file] --search "wastar(hadd())"
 // Obviously, [path-to-PDDL-problem-file] has to be replaced by the actual path
@@ -26,6 +30,23 @@ protected:
 public:
     AdditiveHeuristic(const Options &options);
     ~AdditiveHeuristic() = default;
+private:
+    std::vector<int> hash_arr;
+    int compute_hash(std::pair<int, int>& x);
+    void init_layers_and_counter(const State& state);
+    void achieve_facts(int& pos);
+    void small_iteration();
+    bool doStep();
+    void queue_clear(std::queue<std::pair<int, int>>& q);
+    std::vector<int> counter;
+    std::queue <std::pair<int, int>> fact_schedule;
+    int timestep;
+    int req_goal;
+    std::vector <std::pair<int, std::unordered_set<int>>> fact_set;
+
+
+    std::vector <int> goal_set;
+
 };
 
 #endif
