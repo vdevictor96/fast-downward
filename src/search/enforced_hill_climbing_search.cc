@@ -83,13 +83,20 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
     //- Symmetry breaking
     //- Duplicate deletion
     /*
-    for (const Operator* op : plan) {
-
-        auto it = std::find(ops.begin(), ops.end(), op);
-        if (it != plan.end()) {
-            plan.erase(it);
+    std::vector<int> delete_this;
+  
+    for (int y = 0; y < plan.size(); y++) {
+        for (int x = 0; x < ops.size(); x++) {
+            if (ops[x] == plan[y]) {
+                delete_this.push_back(x);
+            }
         }
-    }*/
+    }
+    std::reverse(ops.begin(), ops.end());
+    for (int z: delete_this) {
+        ops.erase(ops.begin()+z);
+    }
+    */
 
 #ifndef NDEBUG
     for (const Operator* op : ops) {
@@ -97,6 +104,7 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
     }
 #endif
 }
+
 
 // this function is called only once for the input planning task.
 // if current_state is a goal state, search will break out of the while loop,
@@ -142,40 +150,49 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     std::deque<State> open_list; // the breadth-first list also called frontier
     std::vector<const Operator*> ops; // all available operations for the current state
     std::deque<std::vector<const Operator*>> plans;
+    std::vector<const Operator*> current_plan;
+
     // intitialize
     open_list.push_back(current_state);
     plans.push_back(plan);
     // only stop if there is no more possibilities
     while (!open_list.empty()) {
         current_state = open_list.front(); // initialize new current_state for hill_climbing algorithm
-        plan = plans.front(); // initialize plan for the current_state
+        current_plan.clear();
+        if (!plans.empty()) {
+            current_plan = plans.front(); // initialize plan for the current_state
+            plans.pop_front();
+        }
         open_list.pop_front();
-        plans.pop_front();
         ops.clear();
         get_applicable_operators(current_state, ops); // get the available operations
         for (int i = 0; i < ops.size(); i++) { // loop through every possible operation
             State next_state = g_state_registry->get_successor_state(current_state, *ops[i]); // state after applying the operator
             evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
-            plan.push_back(ops[i]); // create plan for next_state
+            current_plan.push_back(ops[i]); // create plan for next_state
             if (heuristic->get_heuristic() < current_h) {
+                current_g = plan.size() + current_plan.size();
                 current_h = heuristic->get_heuristic(); // update current_h
                 open_list.clear();
-                open_list.push_back(current_state); // next_state will be expanded as next
+                open_list.push_back(next_state); // next_state will be expanded as next
                 plans.clear();
-                plans.push_back(plan);
-                i = ops.size(); // stop iterating successors
+                for (int j = 0; j < current_plan.size(); j++){
+                    plan.push_back(current_plan[j]);
+                }
                 if (test_goal(next_state)) { // next_state is goal state
                     cout << "Found a goal state!" << endl;
+                    cout << plan << endl;
                     assert(is_plan(plan));
                     set_plan(plan);
                     return SOLVED;
                 }
+                break;
             }
             else {
                 open_list.push_back(next_state); // no new best heuristic have been found, breath first search will continue 
-                plans.push_back(plan);
+                plans.push_back(current_plan);
             }
-            plan.pop_back(); // reset plan to current_state plan.
+            current_plan.pop_back(); // reset plan to current_state plan.
         }
     }
     return FAILED;
