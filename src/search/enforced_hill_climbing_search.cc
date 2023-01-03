@@ -128,17 +128,17 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     // from the old state to the new state to plan! Otherwise, the computed plan
     // will not be valid!
 
-    std::deque<State> open_list; // the breadth-first list also called frontier
+    std::deque<StateID> open_list; // the breadth-first list also called frontier
     std::vector<const Operator*> ops; // all available operations for the current state
     std::deque<std::vector<const Operator*>> plans;
     std::vector<const Operator*> current_plan;
 
     // intitialize
-    open_list.push_back(current_state);
+    open_list.push_back(current_state.get_id());
     plans.push_back(plan);
     // only stop if there is no more possibilities
     while (!open_list.empty()) {
-        current_state = open_list.front(); // initialize new current_state for hill_climbing algorithm
+        current_state = g_state_registry->lookup_state(open_list.front()); // initialize new current_state for hill_climbing algorithm
         current_plan.clear();
         if (!plans.empty()) {
             current_plan = plans.front(); // initialize plan for the current_state
@@ -155,7 +155,7 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 current_g = plan.size() + current_plan.size();
                 current_h = heuristic->get_heuristic(); // update current_h
                 open_list.clear();
-                open_list.push_back(next_state); // next_state will be expanded as next
+                open_list.push_back(next_state.get_id()); // next_state will be expanded as next
                 plans.clear();
                 for (int j = 0; j < current_plan.size(); j++){
                     plan.push_back(current_plan[j]);
@@ -169,7 +169,7 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 break;
             }
             else {
-                open_list.push_back(next_state); // no new best heuristic have been found, breath first search will continue 
+                open_list.push_back(next_state.get_id()); // no new best heuristic have been found, breath first search will continue 
                 plans.push_back(current_plan);
             }
             current_plan.pop_back(); // reset plan to current_state plan.
