@@ -100,11 +100,12 @@ int FFHeuristic::compute_heuristic(const State &state)
             relaxed_plan.insert(relaxed_plan.end(), sf);
             const vector<Condition> &preconditions = (*sf).get_preconditions();
             // Add effects of action in closed list
-            const vector<Effect> &effects = (*sf).get_effects();
-            for (size_t e = 0; e < effects.size(); e++) {
-                varVal effect = make_pair(effects[e].var, effects[e].val);
-                closed.insert(closed.end(), effect);
-            }
+            // commented because causes relaxed plan not to assert to true for the is_relaxed_plan()
+            // const vector<Effect> &effects = (*sf).get_effects();
+            // for (size_t e = 0; e < effects.size(); e++) {
+            //     varVal effect = make_pair(effects[e].var, effects[e].val);
+            //     closed.insert(closed.end(), effect);
+            // }
             for (size_t p = 0; p < preconditions.size(); p++) {
                 varVal precondition = make_pair(preconditions[p].var, preconditions[p].val);
                 // not in initial state
@@ -121,6 +122,7 @@ int FFHeuristic::compute_heuristic(const State &state)
             }
         }
     }
+    // assert(is_relaxed_plan(state, relaxed_plan));
     return relaxed_plan.size();
 }
 
