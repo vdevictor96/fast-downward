@@ -128,6 +128,8 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     // from the old state to the new state to plan! Otherwise, the computed plan
     // will not be valid!
 
+    //
+
     std::deque<StateID> open_list; // the breadth-first list also called frontier
     std::vector<const Operator*> ops; // all available operations for the current state
     std::deque<std::vector<const Operator*>> plans;
@@ -140,39 +142,42 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     while (!open_list.empty()) {
         current_state = g_state_registry->lookup_state(open_list.front()); // initialize new current_state for hill_climbing algorithm
         current_plan.clear();
-        if (!plans.empty()) {
+        if (!plans.empty()) { // only if there havent been found a new min heuristic
             current_plan = plans.front(); // initialize plan for the current_state
             plans.pop_front();
         }
         open_list.pop_front();
         ops.clear();
+        //bool dead_end = true;  -> if sokoban or nomystery is not finding any solution we can go back a step and try another path
         get_applicable_operators(current_state, ops); // get the available operations
         for (int i = 0; i < ops.size(); i++) { // loop through every possible operation
             State next_state = g_state_registry->get_successor_state(current_state, *ops[i]); // state after applying the operator
-            evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
-            current_plan.push_back(ops[i]); // create plan for next_state
-            if (heuristic->get_heuristic() < current_h) {
-                current_g = plan.size() + current_plan.size();
-                current_h = heuristic->get_heuristic(); // update current_h
-                open_list.clear();
-                open_list.push_back(next_state.get_id()); // next_state will be expanded as next
-                plans.clear();
-                for (int j = 0; j < current_plan.size(); j++){
-                    plan.push_back(current_plan[j]);
+            if (!(std::find(open_list.begin(), open_list.end(), next_state.get_id()) != open_list.end())) {
+                evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
+                current_plan.push_back(ops[i]); // create plan for next_state
+                if (heuristic->get_heuristic() < current_h) {
+                    current_g = plan.size() + current_plan.size();
+                    current_h = heuristic->get_heuristic(); // update current_h
+                    open_list.clear();
+                    open_list.push_back(next_state.get_id()); // next_state will be expanded as next
+                    plans.clear();
+                    for (int j = 0; j < current_plan.size(); j++) {
+                        plan.push_back(current_plan[j]);
+                    }
+                    if (test_goal(next_state)) { // next_state is goal state
+                        cout << "Found a goal state!" << endl;
+                        assert(is_plan(plan));
+                        set_plan(plan);
+                        return SOLVED;
+                    }
+                    break;
                 }
-                if (test_goal(next_state)) { // next_state is goal state
-                    cout << "Found a goal state!" << endl;
-                    assert(is_plan(plan));
-                    set_plan(plan);
-                    return SOLVED;
+                else {
+                    open_list.push_back(next_state.get_id()); // no new best heuristic have been found, breath first search will continue 
+                    plans.push_back(current_plan);
                 }
-                break;
+                current_plan.pop_back(); // reset plan to current_state plan.
             }
-            else {
-                open_list.push_back(next_state.get_id()); // no new best heuristic have been found, breath first search will continue 
-                plans.push_back(current_plan);
-            }
-            current_plan.pop_back(); // reset plan to current_state plan.
         }
     }
     return FAILED;
