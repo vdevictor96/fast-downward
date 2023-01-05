@@ -11,6 +11,10 @@
 
 #include <map>
 #include <vector>
+#include <algorithm>
+#include <numeric>
+
+
 
 // Usage example: the command line option for using enforced hill climbing
 // using heuristic with name h is
