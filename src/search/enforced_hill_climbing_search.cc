@@ -90,16 +90,36 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
 #endif
 }
 
-// Function to generate all combinations of the elements of a vector
-std::vector<std::vector<int>> getCombinations(int n) {
+// Combinations without order, with duplicates 
+std::vector<std::vector<int>> getCombinations(int n, int depth) { 
     std::vector<std::vector<int>> combinations;
-    std::vector<int> v(n);
-    std::iota(v.begin(), v.end(), 0);  // Fill v with the numbers 1, 2, ..., n
-    do {
-        combinations.push_back(v);
-    } while (std::next_permutation(v.begin(), v.end()));
+    if (depth == 0) {
+        combinations.push_back({});
+        return combinations;
+    }
+    for (int i = 0; i < n; i++) {
+        std::vector<std::vector<int>> subcombinations = getCombinations(n, depth - 1);
+        for (auto& subcombination : subcombinations) {
+            subcombination.push_back(i);
+            std::sort(subcombination.begin(), subcombination.end());
+            if (std::find(combinations.begin(), combinations.end(), subcombination) == combinations.end()) {
+                combinations.push_back(subcombination);
+            }
+        }
+    }
     return combinations;
 }
+
+// Order the possible clause learning:
+//  clausels are first learned if they are closer it is to the problem.
+bool compareVectors(const std::vector<int>& a, const std::vector<int>& b) {
+    int sumA = 0;
+    for (int x : a) sumA += x;
+    int sumB = 0;
+    for (int x : b) sumB += x;
+    return sumA > sumB;
+}
+
 
 
 // this function is called only once for the input planning task.
@@ -231,25 +251,23 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
             if (clause_learning_failed) {
                 return FAILED;
             }
+            //if(opend.size() > 15)
+
             if(possibilities.empty()){
-                {
-                    possibilities = getCombinations(opend.size());
-                }
+                possibilities = getCombinations(opend.size(), opend.size());
+                std::sort(possibilities.begin(), possibilities.end(), compareVectors);
                 clause_learning_failed = true;
             }
             for (int i = 0; i < opend.size(); i++) {
                 clause_learning.clear();
                 clause_learning.push_back(opend[possibilities.back()[i]]);
             }
-            //clause_learning.push_back(opend.front());
             possibilities.pop_back();
             plan.clear();
             plans.clear();
             plans.push_back(plan);
             open_list.clear();
             open_list.push_back(g_initial_state().get_id());
-            opend.clear();
-            opend.push_back(g_initial_state().get_id());
             all_opend.clear();
         }
     }
