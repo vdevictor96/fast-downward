@@ -134,6 +134,8 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
 
     // basic construct:
     // https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume28/coles07a-html/node5.html
+    // But I deleted the "break", because it will lead to really inefficent paths.
+    // And added a list of all opend states, to there are no loops in opening nodes
     //
     // If Hill Climbing failed to find a new best heuristic,
     // we used first breath to find the nex solution. 
