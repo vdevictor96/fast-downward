@@ -90,37 +90,6 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
 #endif
 }
 
-// Combinations without order, with duplicates 
-std::vector<std::vector<int>> getCombinations(int n, int depth) { 
-    std::vector<std::vector<int>> combinations;
-    if (depth == 0) {
-        combinations.push_back({});
-        return combinations;
-    }
-    for (int i = 0; i < n; i++) {
-        std::vector<std::vector<int>> subcombinations = getCombinations(n, depth - 1);
-        for (auto& subcombination : subcombinations) {
-            subcombination.push_back(i);
-            std::sort(subcombination.begin(), subcombination.end());
-            if (std::find(combinations.begin(), combinations.end(), subcombination) == combinations.end()) {
-                combinations.push_back(subcombination);
-            }
-        }
-    }
-    return combinations;
-}
-
-// Order the possible clause learning:
-//  clausels are first learned if they are closer it is to the problem.
-bool compareVectors(const std::vector<int>& a, const std::vector<int>& b) {
-    int sumA = 0;
-    for (int x : a) sumA += x;
-    int sumB = 0;
-    for (int x : b) sumB += x;
-    return sumA > sumB;
-}
-
-
 
 // this function is called only once for the input planning task.
 // if current_state is a goal state, search will break out of the while loop,
@@ -174,30 +143,18 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     // 
     // To save the right plan, we track indivually the plan for every opend state.
     // If we find a new best heuristic we append the indivual plan to the real plan and delete every indivual plan.
-    // 
-    // Additionaly we created a open_list restriction, no state can be opend twice.
-    // For nomystery and sokoban we created a bracktracking method from AI 1.
-    // By using Clause Learning we can track back to the junction to a wrong path.
 
     std::deque<StateID> open_list; // the breadth-first list also called frontier
     std::vector<const Operator*> ops; // all available operations for the current state
     std::deque<std::vector<const Operator*>> plans; // multiple plans, without the plan, that is tracked for every opend state
     std::vector<const Operator*> current_plan; // the plan for current_state
-    std::deque<StateID> all_opend; // all states we already used will not be added to the open_list
-    std::deque<StateID> opend; // states that have been opend and had a new min heuristic
-    std::vector<StateID> clause_learning; // learned wrong paths, so nomystery and sokoban will be work with this version of ehc
-    std::vector<const Operator*> best_plan;
-    StateID best_state = current_state.get_id();
-    bool clause_learning_failed = false;
-    std::vector<vector<int>> possibilities;
+    std::vector<StateID> opend;
 
     open_list.push_back(current_state.get_id());
-    all_opend.push_back(current_state.get_id());
     plans.push_back(plan);
 
     // only stop if there is no more possibilities
     while (!open_list.empty()) {
-        best_plan.clear();
         current_state = g_state_registry->lookup_state(open_list.front()); // initialize new current_state for hill_climbing algorithm
         open_list.pop_front();
         current_plan.clear(); 
@@ -209,16 +166,18 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
         get_applicable_operators(current_state, ops); // get the available operations
         for (int i = 0; i < ops.size(); i++) { // loop through every possible operation
             State next_state = g_state_registry->get_successor_state(current_state, *ops[i]); // state after applying the operator
-            if ((!(std::find(all_opend.begin(), all_opend.end(), next_state.get_id()) != all_opend.end()))
-                && (!(std::find(clause_learning.begin(), clause_learning.end(), next_state.get_id()) != clause_learning.end()))) {
-                all_opend.push_back(next_state.get_id());
+            if ((!(std::find(opend.begin(), opend.end(), next_state.get_id()) != opend.end()))) {
                 evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
+                opend.push_back(next_state.get_id());
                 current_plan.push_back(ops[i]); // create plan for next_state
                 if (heuristic->get_heuristic() < current_h) {
+                    opend.clear();
                     current_g = plan.size() + current_plan.size();
                     current_h = heuristic->get_heuristic(); // update current_h
-                    best_plan = current_plan;
-                    best_state = next_state.get_id();
+                    open_list.clear();
+                    plans.clear();
+                    open_list.push_front(next_state.get_id()); // best_state will be expanded as next
+                    plans.push_front(current_plan);
                     if (test_goal(next_state)) { // next_state is goal state
                         for (int j = 0; j < current_plan.size(); j++) {
                             plan.push_back(current_plan[j]);
@@ -235,40 +194,6 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 }
                 current_plan.pop_back(); // reset plan to current_state plan.
             }
-        }
-        if(!best_plan.empty()) {
-            for (int a = 0; a < best_plan.size(); a++) {
-                plan.push_back(best_plan[a]);
-            }
-            plans.clear();
-            open_list.clear();
-            open_list.push_back(best_state); // best_state will be expanded as next
-            opend.push_back(best_state);
-            clause_learning_failed = false;
-            possibilities.clear();
-        }
-        if (open_list.empty()) { // Idea of AI Course 1, clause learning to make this ehc compatible with every domain.
-            if (clause_learning_failed) {
-                return FAILED;
-            }
-            //if(opend.size() > 15)
-
-            if(possibilities.empty()){
-                possibilities = getCombinations(opend.size(), opend.size());
-                std::sort(possibilities.begin(), possibilities.end(), compareVectors);
-                clause_learning_failed = true;
-            }
-            for (int i = 0; i < opend.size(); i++) {
-                clause_learning.clear();
-                clause_learning.push_back(opend[possibilities.back()[i]]);
-            }
-            possibilities.pop_back();
-            plan.clear();
-            plans.clear();
-            plans.push_back(plan);
-            open_list.clear();
-            open_list.push_back(g_initial_state().get_id());
-            all_opend.clear();
         }
     }
     return FAILED;
