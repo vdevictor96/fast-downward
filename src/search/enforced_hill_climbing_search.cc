@@ -151,6 +151,7 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     std::deque<std::vector<const Operator*>> plans; // multiple plans, without the plan, that is tracked for every opend state
     std::vector<const Operator*> current_plan; // the plan for current_state
     std::vector<StateID> opend;
+    std::vector<StateID> dead_ends;
 
     open_list.push_back(current_state.get_id());
     plans.push_back(plan);
@@ -172,8 +173,12 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 evaluate(current_state, ops[i], next_state); // get statistics (heuristic value of successor)
                 opend.push_back(next_state.get_id());
                 current_plan.push_back(ops[i]); // create plan for next_state
-                if (heuristic->get_heuristic() < current_h) {
+                if (heuristic->is_dead_end()) {
+                    dead_ends.push_back(next_state.get_id());
+                } 
+                else if (heuristic->get_heuristic() < current_h) {
                     opend.clear();
+                    opend = dead_ends;
                     current_g = plan.size() + current_plan.size();
                     current_h = heuristic->get_heuristic(); // update current_h
                     open_list.clear();
@@ -189,7 +194,7 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                         set_plan(plan);
                         return SOLVED;
                     }
-                }
+                } 
                 else {
                     open_list.push_back(next_state.get_id()); // no new best heuristic have been found, breath first search will continue 
                     plans.push_back(current_plan);
