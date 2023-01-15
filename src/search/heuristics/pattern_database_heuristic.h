@@ -97,9 +97,9 @@ private:
     std::vector <std::vector<int>>N_ind_collection;
     std::vector<std::vector<int> > PDB_collection;
     std::vector<std::vector<std::pair<Operator, int>>> applicable_ops_collection;
-    std::unordered_set<int, hashFunction, compare > closed_list;
+    std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
     std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
-    std::queue<int> open_list;
+    std::vector<std::queue <int>> list_collection;
     std::vector <int>N_ind;
 
     //functions for normal PDB
@@ -116,13 +116,13 @@ private:
     //For canonical heuristic and orthogonality
     void create_orthogonality_graph();
     std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
-    std::vector<std::vector<int>> find_cliques();
-    bool is_clique(std::vector<int> set);
-    std::vector<int> clique(std::vector<int> set);
+    std::vector<std::vector<int>> find_max_cliques();
+    bool is_clique(std::unordered_set<int>& set);
+    std::unordered_set<int> adjoinable_vertices(std::unordered_set<int> Q);
+    std::vector <int> find_adjoinable_vertex(std::unordered_set<int> Q);
+    //std::unordered_set<int> clique(std::unordered_set<int> set);
+    bool compare_cliques(std::unordered_set<int>& A, std::unordered_set <int>& B);
     std::vector<std::vector<bool>> orthogonality_graph;
-    std::vector<std::vector<int>> max_cliques;
-    int compute_canonical_h(std::vector<int> pattern_rank);
-    void naive_pattern_selection();
 
 
 

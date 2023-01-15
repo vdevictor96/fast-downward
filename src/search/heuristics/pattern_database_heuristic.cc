@@ -22,27 +22,6 @@ PDBHeuristic::PDBHeuristic(const Options& opts)
         opts.get_list<int>("test_pattern") : vector<int>()) {
 
 }
-void PDBHeuristic::initialize()
-{
-    cout << "Initializing PDB heuristic..." << endl;
-    if (!m_test_pattern.empty()) {
-        // Use m_test_pattern
-        pattern_collection.push_back(m_test_pattern);
-        computePDB();
-
-        // TODO implementation
-    }
-    else {
-        // Use automatic method
-       naive_pattern_selection();
-        computePDB();
-        if (pattern_collection.size() > 1) {
-            create_orthogonality_graph();
-            max_cliques = find_cliques();
-        }
-    }
-
-}
 int PDBHeuristic::unrank(int r, int var, int ind) {
     int temp = r / N_ind_collection[ind][var];
     return temp % g_variable_domain[var];
@@ -50,8 +29,7 @@ int PDBHeuristic::unrank(int r, int var, int ind) {
 int PDBHeuristic::rankState(const State& state, int ind) {
     int sum = 0;
     for (auto& i : pattern_collection[ind]) {
-        int temp = state[i];
-        sum = N_ind_collection[ind][i] * temp;
+        sum = N_ind_collection[ind][i] * state[i];
     }
     return sum;
 }
@@ -78,9 +56,6 @@ vector <pair<Operator, int>> PDBHeuristic::check_applicable_ops(vector <int>& pa
     int count = 0;
     for (auto& op : g_operators) {
         for (auto& eff : op.get_effects()) {
-            if (eff.var == 10 || eff.var == 8 || eff.var == 6||eff.var==4) {
-                cout << "eq!" << endl;
-            }
             if (find(pat.begin(), pat.end(), eff.var) != pat.end()) {
                 pattern_ops.push_back(make_pair(op, count));
                 break;
@@ -113,24 +88,26 @@ void PDBHeuristic::apply_operation(Operator& op, vector <int>& s, vector<int>& p
 
 void PDBHeuristic::computePDB() {
 
-    N_ind.assign(pattern_collection.size(), 0);
+    closed_list_collection.resize(pattern_collection.size());
+    list_collection.resize(pattern_collection.size());
     adjList_collection.resize(pattern_collection.size());
+    N_ind.assign(pattern_collection.size(), 0);
+    //N_ind_collection.resize(pattern_collection.size());
 
 
-    //Init vectors for ranking/unranking/perfect hach for each pattern
     vector <int> n_arr(g_variable_domain.size());
     fill(n_arr.begin(), n_arr.end(), 0);
-    int ind_max = 0;
     for (auto& pat : pattern_collection) {
         int N = 1;
+        int count = 0;
         N_ind_collection.push_back(n_arr);
         for (auto& i : pat) {
-            N_ind_collection[ind_max][i] = N;
+            N_ind_collection[count][i] = N;
             N *= g_variable_domain[i]; //Compute 
 
         }
-        N_ind[ind_max] = N;
-        ind_max++;
+        N_ind[count] = N;
+        count++;
     }
 
 
@@ -146,7 +123,6 @@ void PDBHeuristic::computePDB() {
         applicable_ops_collection.push_back(check_applicable_ops(pat));
     }
     int ind = 0;
-    //for each pattern compute PDB
     for (auto& pat : pattern_collection) {
         vector <int> s(g_variable_domain.size());
         for (int r = 0; r < N_ind[ind]; ++r) {
@@ -155,8 +131,8 @@ void PDBHeuristic::computePDB() {
             }
             if (goal_test(s, pat)) {
                 PDB_collection[ind][r] = 0;
-                closed_list.insert(r);
-                open_list.push(r);
+                closed_list_collection[ind].insert(r);
+                list_collection[ind].push(r);
             }
             for (auto& op : applicable_ops_collection[ind]) {
                 if (op_applicable(op.first, s, pat)) {
@@ -183,87 +159,81 @@ void PDBHeuristic::computePDB() {
 
 
 
+void PDBHeuristic::initialize()
+{
+    cout << "Initializing PDB heuristic..." << endl;
+
+    if (!m_test_pattern.empty()) {
+        // Use m_test_pattern
+        pattern_collection.push_back(m_test_pattern);
+        computePDB();
+
+        // TODO implementation
+    }
+    else {
+        // Use automatic method
+        pattern_collection.push_back({ 1,4 });
+        computePDB();
+
+        // TODO implementation
+    }
+
+}
+
+
 
 void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search with unit cost
     int h = 0;
 
 
-    while (!open_list.empty()) {
+    while (!list_collection[ind].empty()) {
         h++;
-        int size = open_list.size();
+        int size = list_collection[ind].size();
         while (size > 0) {
-            int front = open_list.front();
-            closed_list.insert(front);
+            int front = list_collection[ind].front();
+            closed_list_collection[ind].insert(front);
             if (adjList_collection[ind].find(front) != adjList_collection[ind].end()) {
                 for (auto& neighbour : adjList_collection[ind].at(front)) {
-                    if (closed_list.find(neighbour) == closed_list.end()) {
-                        open_list.push(neighbour);
+                    if (closed_list_collection[ind].find(neighbour) == closed_list_collection[ind].end()) {
+                        list_collection[ind].push(neighbour);
                         PDB_collection[ind][neighbour] = h;
                     }
                 }
             }
 
 
-            open_list.pop();
+            list_collection[ind].pop();
             size--;
         }
 
 
-    }
-    closed_list.clear();
-    while (!open_list.empty()) {
-        open_list.pop();
     }
 }
 
 
 int PDBHeuristic::compute_heuristic(const State& state)
 {
-    vector<int> pattern_rank;
+    vector<int> pattern_rank(pattern_collection.size());
     for (size_t i = 0; i < pattern_collection.size(); i++) {
         pattern_rank.push_back(rankState(state, i));
     }
 
     // Canocial pattern database heuristic
-
-
-    if (!max_cliques.empty()) {
-        return compute_canonical_h(pattern_rank);
-    }
-    else {
-        int h = PDB_collection[0][pattern_rank.at(0)];
+    int max = 0;
+    for (size_t i = 0; i < pattern_collection.size(); i++) {
+        int h = PDB_collection[i][pattern_rank.at(i)];
         if (h == -1) {
             return DEAD_END;
         }
-        else {
-            cout << h << endl;
-            return h;
-        }
-    }
-
-
-}
-int PDBHeuristic::compute_canonical_h(vector<int> pattern_rank) {
-    int max = 0;
-    for (auto& clique : max_cliques) {
-        int h_sum = 0;
-        for (auto& pat_ind : clique) {
-            int h = PDB_collection[pat_ind][pattern_rank.at(pat_ind)];
-            if (h == -1) {
-                return DEAD_END;
-            }
-            h_sum += PDB_collection[pat_ind][pattern_rank.at(pat_ind)];
-        }
-        if (h_sum > max) {
-            max = h_sum;
+        else if (h > max) {
+            max = h;
         }
     }
     return max;
 }
 
 void PDBHeuristic::create_orthogonality_graph() {
-
-    //orthogonality_graph.resize(pattern_collection.size());
+    orthogonality_graph.resize(pattern_collection.size());
     //Create a matrix with the  patterns as nodes and arcs means orthogonality between patterns
     vector<bool> row(pattern_collection.size(), true);
     for (int i = 0; i < pattern_collection.size(); i++) {
@@ -294,50 +264,130 @@ void PDBHeuristic::create_orthogonality_graph() {
     }
 
 }
+/*
 vector<vector<int>> PDBHeuristic::find_cliques() {
     vector<vector<int>> cliques;
-    //Iterate for each node list. All edges that are found for a maximal clique of a given node are deleted
-    for (int i = 0; i < orthogonality_graph.size(); i++) {
-        vector <int> list;
-        for (int j = 0; j < orthogonality_graph[i].size(); j++) {
+    for (int i = 0;i<orthogonality_graph.size();i++) {
+        unordered_set <int> list;
+        list.insert(i);
+        for (int j = 0;j<orthogonality_graph[i].size();j++) {
             if (orthogonality_graph[i][j] == true) {
-                //Insert all edges for the given node into a list
-                list.push_back(j);
+                list.insert(j);
             }
         }
-        cliques.push_back(clique(list));
     }
     return cliques;
+}*/
+
+vector <int> PDBHeuristic::find_adjoinable_vertex(unordered_set<int> Q) {
+    unordered_set <int> temp;
+    vector <int> adjoinable_nodes;
+    for (int i = 0; i < orthogonality_graph.size(); i++) {
+        if (find(Q.begin(), Q.end(), i) == Q.end())
+            temp = Q;
+        temp.insert(i);
+        if (is_clique(temp)) {
+            adjoinable_nodes.push_back(i);
+        }
+    }
+    return adjoinable_nodes;
 }
-vector<int> PDBHeuristic::clique(vector<int> set) {
+
+
+unordered_set<int> PDBHeuristic::adjoinable_vertices(unordered_set<int> Q) { //Expand clique until its maximal
+    vector <int> adjoinable_nodes = find_adjoinable_vertex(Q);
+    unordered_set <int> temp;
+
+    int max = 0;
+    int node = -1;
+    for (auto ad_node : adjoinable_nodes) {
+        temp = Q;
+        temp.insert(ad_node);
+        vector <int> ad_vector = find_adjoinable_vertex(temp);
+        if (max < ad_vector.size()) {
+            node = ad_node;
+            max = ad_vector.size();
+        }
+    }
+    if (node == -1) {
+        return Q;
+    }
+    else {
+        Q.insert(node);
+        return Q;
+    }
+
+
+}
+bool PDBHeuristic::compare_cliques(unordered_set<int>& A, unordered_set <int>& B) {
+    int count = 0;
+    for (auto& node : A) {
+        if (find(B.begin(), B.end(), node) != B.end()) {
+            count++;
+        }
+    }
+    return count == B.size(); //If all nodes from A are found in B, then they are equal. A cannot be a subset of B, because of the previous expansion
+}
+
+vector <vector<int>> PDBHeuristic::find_max_cliques() {
+    //The algorithm is far away from potential worst-case performance Guarantees like O(3^{n/3}) as stated by
+    // Etsuji Tomita, Akira Tanaka and Haruhisa Takahashi   in 
+    // The Worst-Case Time Complexity for Generating All Maximal Cliques
+    //Proceedings of the 10th Annual International Conference on Computing and Combinatorics(COCOON 2004), pp. 161 - 170, 2004.
+
+    //However the algorithm is quite complex and the orthogonality graphs are quite small
+    vector <unordered_set<int>> max_cliques;
+    vector<vector<int>> clique_pattern;
+    for (int i = 0; i < orthogonality_graph.size(); i++) {
+        unordered_set <int> temp;
+        temp.insert(i);
+        max_cliques.push_back(adjoinable_vertices(temp));
+    }
+
+    //Delete duplicates
+    for (size_t i = 0; i < max_cliques.size(); i++) {
+        for (size_t j = i + 1; j < max_cliques.size(); j++) {
+            if (!max_cliques[i].empty() && !max_cliques[j].empty()) {
+                if (compare_cliques(max_cliques[i], max_cliques[j])) {
+                    max_cliques[j].clear();
+                }
+            }
+
+        }
+    }
+
+    for (auto& max_clique : max_cliques) {
+        if (!max_clique.empty()) {
+            vector <int> clique;
+            for (auto& node : max_clique) {
+                clique.push_back(node);
+            }
+            clique_pattern.push_back(clique);
+        }
+    }
+    return clique_pattern;
+
+
+}
+
+/*
+unordered_set<int> PDBHeuristic::clique(unordered_set<int> set) {
+
+
     if (is_clique(set)) {
         return set;
     }
-    vector <int> temp = set;
-    vector <int> temp2;
-    vector <int> max_clique;
-    int max = 0;
-    for (int i = 0; i < set.size();i++) {
-        temp.erase(temp.begin()+i);
-        temp2 = clique(temp);
-        //It should be irrelevant that we do not distinguish between equal sized cliques
-        if (temp2.size() > max) {
-            max = temp2.size();
-            max_clique = temp2;
-        }
-    }
-    //All edges that are contained in the max_clique can be deleted in the graph
-    for (auto& node1 : max_clique) {
-        for (auto& node2 : max_clique) {
-            orthogonality_graph[node1][node2] = false;
-        }
-
+    unordered_set <int> temp = set;
+    //int max = 0;
+    for (auto& node : set) {
+        temp.erase(node);
+        temp = clique(temp);
     }
 
-    return max_clique;
+    return set;
 
-}
-bool PDBHeuristic::is_clique(vector<int> set) {
+}*/
+bool PDBHeuristic::is_clique(unordered_set<int>& set) {
     for (auto& node1 : set) {
         for (auto& node2 : set) {
             if (!orthogonality_graph[node1][node2]) {
@@ -346,13 +396,6 @@ bool PDBHeuristic::is_clique(vector<int> set) {
         }
     }
     return true;
-}
-void PDBHeuristic::naive_pattern_selection() {
-    vector <int> pat;
-    for (int i = 0; i < g_goal.size();i+=5) {
-        pat.push_back(g_goal[i].first);
-    }
-    pattern_collection.push_back(pat);
 }
 
 
