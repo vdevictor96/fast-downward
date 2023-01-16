@@ -62,7 +62,6 @@ vector <pair<Operator, int>> PDBHeuristic::check_applicable_ops(vector <int>& pa
             }
         }
         count++;
-
     }
     return pattern_ops;
 }
@@ -104,7 +103,6 @@ void PDBHeuristic::computePDB() {
         for (auto& i : pat) {
             N_ind_collection[count][i] = N;
             N *= g_variable_domain[i]; //Compute 
-
         }
         N_ind[count] = N;
         count++;
@@ -172,10 +170,10 @@ void PDBHeuristic::initialize()
     }
     else {
         // Use automatic method
-        pattern_collection.push_back({ 1,4 });
+        naive_pattern_selection();
+       // pattern_collection.push_back({0,5,23,43,8,15});
         computePDB();
 
-        // TODO implementation
     }
 
 }
@@ -230,6 +228,37 @@ int PDBHeuristic::compute_heuristic(const State& state)
         }
     }
     return max;
+}
+
+void PDBHeuristic::naive_pattern_selection() {
+    vector <int> pat;
+    //add random goal variable. The number 10 is also a random hyperparameter.
+    for (int i = 0; i < g_goal.size(); i += 10) {
+        int g = rand() % g_goal.size();
+        bool exists = false;
+        for (auto& p : pat) {
+            if (p == g_goal[g].first) {
+                exists = true;
+            }
+        }
+        if (!exists) {
+            pat.push_back(g_goal[g].first);
+        } 
+    }
+    //add some random variables
+    for (int i = 0; i < g_variable_domain.size(); i += 10) {
+        int g = rand() % g_variable_domain.size();
+        bool exists = false;
+        for (auto& p : pat) {
+            if (p == g) {
+                exists = true;
+            }
+        }
+        if (!exists) {
+            pat.push_back(g);
+        }
+    }
+    pattern_collection.push_back(pat);
 }
 
 void PDBHeuristic::create_orthogonality_graph() {

@@ -111,6 +111,7 @@ private:
     bool op_applicable(Operator& op, std::vector<int>& s, std::vector <int>& pat);
     void computePDB();
     void apply_operation(Operator& op, std::vector <int>& s, std::vector<int>& pat);
+    void naive_pattern_selection();
 
 
     //For canonical heuristic and orthogonality
