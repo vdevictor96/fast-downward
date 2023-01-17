@@ -111,7 +111,7 @@ private:
     bool op_applicable(Operator& op, std::vector<int>& s, std::vector <int>& pat);
     void computePDB();
     void apply_operation(Operator& op, std::vector <int>& s, std::vector<int>& pat);
-    void naive_pattern_selection();
+    std::vector <int> naive_pattern_selection();
 
 
     //For canonical heuristic and orthogonality
@@ -119,11 +119,13 @@ private:
     std::vector <std::pair < Operator, int >> check_applicable_ops(std::vector <int>& pat);
     std::vector<std::vector<int>> find_max_cliques();
     bool is_clique(std::unordered_set<int>& set);
-    std::unordered_set<int> adjoinable_vertices(std::unordered_set<int> Q);
     std::vector <int> find_adjoinable_vertex(std::unordered_set<int> Q);
     //std::unordered_set<int> clique(std::unordered_set<int> set);
     bool compare_cliques(std::unordered_set<int>& A, std::unordered_set <int>& B);
     std::vector<std::vector<bool>> orthogonality_graph;
+    std::vector<std::vector<int>> max_cliques_ind;
+    std::vector<std::unordered_set<int>> expand_clique(std::unordered_set<int>Q);
+
 
 
 
