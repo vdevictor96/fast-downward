@@ -185,16 +185,21 @@ void PDBHeuristic::initialize()
         // Use m_test_pattern
         pattern_collection.push_back(m_test_pattern);
         computePDB();
-
         // TODO implementation
     }
     else {
         // Use automatic method
+        
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        
+
         
        // pattern_collection.push_back({0,5,23,43,8,15});
         computePDB();
@@ -228,13 +233,9 @@ void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search wit
                     }
                 }
             }
-
-
             list_collection[ind].pop();
             size--;
         }
-
-
     }
 }
 
@@ -246,7 +247,7 @@ int PDBHeuristic::compute_heuristic(const State& state)
         pattern_rank.push_back(rankState(state, i));
     }
 
-    //standard case with one pattern
+    //standard PDB with one pattern
     if (pattern_collection.size() == 1) {
        // cout << PDB_collection[0][pattern_rank.at(0)]<<endl;
         return PDB_collection[0][pattern_rank.at(0)];
