@@ -29,7 +29,8 @@ int PDBHeuristic::unrank(int r, int var, int ind) {
 int PDBHeuristic::rankState(const State& state, int ind) {
     int sum = 0;
     for (auto& i : pattern_collection[ind]) {
-        sum += N_ind_collection[ind][i] * state[i];
+        int temp = state[i];
+        sum += N_ind_collection[ind][i] * temp;
     }
     return sum;
 }
@@ -110,7 +111,7 @@ void PDBHeuristic::computePDB() {
         N_ind_collection.push_back(n_arr);
         for (auto& i : pat) {
             N_ind_collection[count][i] = N;
-            N *= g_variable_domain[i]; //Compute 
+            N *= g_variable_domain[i]; 
         }
         N_ind[count] = N;
         count++;
@@ -146,13 +147,14 @@ void PDBHeuristic::computePDB() {
                 list_collection[ind].push(r);
             }
             //for (auto& op : applicable_ops_collection[ind]) {
-            for(int op=0;op<g_operators.size();op++){
+            for(auto &op:applicable_ops_collection[ind]) {
                 if (op_applicable(op, s, pat)) {
                     vector <int> s2 = s;
                     apply_operation(op, s2, pat);
-                    int r2 = rank(s2, ind);
                     
-                    adjList_collection[ind][r2].insert(r); //The graph is backwards
+                    int r2 = rank(s2, ind);
+                    adjList_collection[ind][r2].insert(r); //The graph is backwards  
+
                 }
             }
         }
@@ -280,8 +282,8 @@ int PDBHeuristic::compute_heuristic(const State& state)
 
 vector <int> PDBHeuristic::naive_pattern_selection() {
     vector <int> pat;
-    //add random goal variable. The number 10 is also a random hyperparameter.
-    for (int i = 0; i < g_goal.size(); i += 10) {
+    //add random goal variable. The number 8 is also a random hyperparameter.
+    for (int i = 0; i < g_goal.size(); i += 6) {
         int g = rand() % g_goal.size();
         bool exists = false;
         for (auto& p : pat) {
@@ -294,7 +296,7 @@ vector <int> PDBHeuristic::naive_pattern_selection() {
         } 
     }
     //add some random variables
-    for (int i = 0; i < g_variable_domain.size(); i += 10) {
+    for (int i = 0; i < g_variable_domain.size(); i += 6) {
         int g = rand() % g_variable_domain.size();
         bool exists = false;
         for (auto& p : pat) {
@@ -305,6 +307,7 @@ vector <int> PDBHeuristic::naive_pattern_selection() {
         if (!exists) {
             pat.push_back(g);
         }
+        sort(pat.begin(), pat.end());
     }
     return pat;
 }
