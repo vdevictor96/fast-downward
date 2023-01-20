@@ -22,27 +22,26 @@ PDBHeuristic::PDBHeuristic(const Options& opts)
         opts.get_list<int>("test_pattern") : vector<int>()) {
 
 }
-int PDBHeuristic::unrank(size_t r, int var, int ind) {
+int PDBHeuristic::unrank( int r, int var, int ind) {
     int temp = r / N_ind_collection[ind][var];
     assert(temp >= 0);
-    temp=temp% g_variable_domain[var]; //for debugging
-    return temp;
+    return temp % g_variable_domain[var];
 }
-size_t PDBHeuristic::rankState(const State& state, int ind) {
-    size_t sum = 0;
+ int PDBHeuristic::rankState(const State& state, int ind) {
+     int sum = 0;
     for (auto& i : pattern_collection[ind]) {
-        int temp = state[i];//for debugging
-        sum += N_ind_collection[ind][i] * temp;
+        sum += N_ind_collection[ind][i] * state[i];
     }
-    assert(sum >= 0);
+    assert(sum >= 0&&sum<=N_ind[ind]);
     return sum;
 }
 
-size_t PDBHeuristic::rank(vector <int>& s, int ind) {
-    size_t sum = 0;
-    for (auto& i : pattern_collection[ind]) {
-        sum += N_ind_collection[ind][i] * s[i];
+ int PDBHeuristic::rank(vector <int>& s, int ind) {
+     int sum = 0;
+    for (auto& pat_var : pattern_collection[ind]) {
+        sum += N_ind_collection[ind][pat_var] * s[pat_var];
     }
+    assert(sum >= 0 && sum <= N_ind[ind]);
     return sum;
 }
 bool PDBHeuristic::goal_test(vector <int>& s, vector <int>& pat) {
@@ -58,8 +57,8 @@ bool PDBHeuristic::goal_test(vector <int>& s, vector <int>& pat) {
 vector <int> PDBHeuristic::check_applicable_ops(vector <int>& pat) {
     vector <int> pattern_ops;
     int count = 0;
-    for (auto& op : g_operators) {
-        for (auto& eff : op.get_effects()) {
+    for (int op = 0; op < g_operators.size();op++) {
+        for (auto& eff : g_operators[op].get_effects()) {
             if (find(pat.begin(), pat.end(), eff.var) != pat.end()) {
                 pattern_ops.push_back(count);
                 break;
@@ -81,16 +80,17 @@ bool PDBHeuristic::op_applicable(int op, vector<int>& s, vector <int>& pat) {
     return true;
 }
 
-void PDBHeuristic::apply_operation(int op, vector <int>& s, vector<int>& pat) {
+vector<int> PDBHeuristic::apply_operation(int op, vector <int> s, vector<int>& pat) {
     for (auto& eff : g_operators[op].get_effects()) {
         if (find(pat.begin(), pat.end(), eff.var) != pat.end()) {
             s[eff.var] = eff.val;
         }
     }
+    return s;
 }
 
 void PDBHeuristic::computePDB() {
-    //The PDB computation follows the paper
+    //The PDB computation follows the sudocode of the paper
     //"Efficient Implementation of Pattern Database Heuristics for Classical Planning" by Sievers, Ortlieb & Helmert, 2012
     //Without their made improvements
 
@@ -105,16 +105,16 @@ void PDBHeuristic::computePDB() {
     N_ind.assign(pattern_collection.size(), 0);
 
 
-    vector <size_t> n_arr(g_variable_domain.size());
+    vector < int> n_arr(g_variable_domain.size());
     fill(n_arr.begin(), n_arr.end(), 0);
     int count = 0;
     //N_ind_collection is for unranking and ranking
-    for (auto& pat : pattern_collection) {
-        size_t N = 1;
+    for (auto& pattern : pattern_collection) {
+        int N = 1;
         N_ind_collection.push_back(n_arr);
-        for (auto& i : pat) {
-            N_ind_collection[count][i] = N;
-            N *= g_variable_domain[i]; 
+        for (auto& var : pattern) {
+            N_ind_collection[count][var] = N;
+            N *= g_variable_domain[var]; 
         }
         N_ind[count] = N; //For a pattern, this is the number of states in the abstract state space
         count++;
@@ -122,42 +122,44 @@ void PDBHeuristic::computePDB() {
 
 
     //Init PDB with -1 for all available patterns
-    for (size_t i = 0; i < pattern_collection.size(); i++) {
-        vector<int> abstract_space_vec(N_ind[i]);
+    for ( int i = 0; i < pattern_collection.size(); i++) {
+        vector<int> abstract_space_vec(N_ind[i]+1);
         fill(abstract_space_vec.begin(), abstract_space_vec.end(), -1);
         PDB_collection.push_back(abstract_space_vec);
     }
 
     //Find applicable operations for each pattern
-    for (auto& pat : pattern_collection) {
-        applicable_ops_collection.push_back(check_applicable_ops(pat));
+    for (auto& pattern : pattern_collection) {
+        applicable_ops_collection.push_back(check_applicable_ops(pattern));
     }
     int ind = 0;
-    for (auto& pat : pattern_collection) {
+    for (auto& pattern : pattern_collection) {
+        list_collection[ind].push(N_ind[ind]); //Add state with 0-action cost
+        closed_list_collection[ind].insert(N_ind[ind]);
+
         vector <int> abstract_state(g_variable_domain.size());
-
-
         //For a pattern iterate over all states (represended as index)
-        for (size_t state_rank = 0; state_rank < N_ind[ind]; ++state_rank) {
+        for (int state_rank = 0; state_rank < N_ind[ind]; ++state_rank) {
+            
+
             //unrank abstract state
-            for (auto& pat_var : pat) {
+            for (auto& pat_var : pattern) {
                 abstract_state[pat_var] = unrank(state_rank, pat_var, ind);
             }
 
-            if (goal_test(abstract_state, pat)) {
-                PDB_collection[ind][state_rank] = 0;
-                closed_list_collection[ind].insert(state_rank);
-                list_collection[ind].push(state_rank);
+            if (goal_test(abstract_state, pattern)) {
+                adjList_collection[ind][N_ind[ind]].insert(state_rank);
+         
+                //PDB_collection[ind][state_rank] = 0;
+                //closed_list_collection[ind].insert(state_rank);
+                //list_collection[ind].push(state_rank);
             }
-            //for (auto& op : applicable_ops_collection[ind]) {
+            //Consider only relevant operations. Other operators have no effect and add if applicabale only self-transitions
             for(auto &op:applicable_ops_collection[ind]) {
-                if (op_applicable(op, abstract_state, pat)) {
-                    vector <int> next_state = abstract_state;
-                    apply_operation(op, next_state, pat);
-                    
+                if (op_applicable(op, abstract_state, pattern)) {
+                    vector <int> next_state = apply_operation(op, abstract_state, pattern);           
                     int next_state_rank = rank(next_state, ind);
-                    adjList_collection[ind][next_state_rank].insert(state_rank); //The graph is backwards  
-
+                    adjList_collection[ind][next_state_rank].insert(state_rank); //The graph is backwards
                 }
             }
         }
@@ -186,7 +188,6 @@ void PDBHeuristic::initialize()
         // Use automatic method
         
         pattern_collection.push_back(naive_pattern_selection());
-        /*
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
@@ -204,15 +205,29 @@ void PDBHeuristic::initialize()
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
         pattern_collection.push_back(naive_pattern_selection());
-        */
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
 
-        /*
-        vector <int> pat;
-        for (int i = 0; i < g_goal.size(); i++) {
-            pat.push_back(g_goal[i].first);
-        }
-        pattern_collection.push_back(pat);
-        */
+
+        
+
+
         
 
         computePDB();
@@ -230,17 +245,17 @@ void PDBHeuristic::initialize()
 void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search with unit cost
 
     while (!list_collection[ind].empty()) {
-            int front = list_collection[ind].front();
-            closed_list_collection[ind].insert(front);
-            if (adjList_collection[ind].find(front) != adjList_collection[ind].end()) {
-                for (auto& neighbour : adjList_collection[ind].at(front)) {
-                    if (closed_list_collection[ind].find(neighbour) == closed_list_collection[ind].end()) {
-                        list_collection[ind].push(neighbour);
-                        PDB_collection[ind][neighbour] = PDB_collection[ind][front] + 1;
-                    }
+        int front = list_collection[ind].front();
+        
+            for (auto& neighbour : adjList_collection[ind][front]) {
+                if (closed_list_collection[ind].find(neighbour) == closed_list_collection[ind].end()) {
+                    list_collection[ind].push(neighbour);
+                    PDB_collection[ind][neighbour] = PDB_collection[ind][front] + 1;
+                    closed_list_collection[ind].insert(neighbour);
                 }
-            list_collection[ind].pop();
-        }
+            }
+        list_collection[ind].pop();
+            
     }
 }
 
@@ -248,7 +263,7 @@ void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search wit
 int PDBHeuristic::compute_heuristic(const State& state)
 {
     vector<int> pattern_rank;
-    for (size_t i = 0; i < pattern_collection.size(); i++) {
+    for (int i = 0; i < pattern_collection.size(); i++) {
         pattern_rank.push_back(rankState(state, i));
     }
 
@@ -285,31 +300,42 @@ int PDBHeuristic::compute_heuristic(const State& state)
 
 vector <int> PDBHeuristic::naive_pattern_selection() {
     vector <int> pat;
-    //add random goal variable. The number 8 is also a random hyperparameter.
-    for (int i = 0; i < g_goal.size(); i += 6) {
+    //add random goal variable. There a few hyperparameter here, which should keep the state space under controll. However this does really
+    //regulate the space for huge problems
+    for (int i = 0; i < g_goal.size(); i += 8) {
         int g = rand() % g_goal.size();
-        bool exists = false;
-        for (auto& p : pat) {
-            if (p == g_goal[g].first) {
-                exists = true;
+
+        //Small hack so that the state space is under controll. Has obvious drawbacks
+        if (g_variable_domain[g_goal[g].first] < 20) {
+            bool exists = false;
+            for (auto& p : pat) {
+                if (p == g_goal[g].first) {
+                    exists = true;
+                }
             }
+            if (!exists) {
+                pat.push_back(g_goal[g].first);
         }
-        if (!exists) {
-            pat.push_back(g_goal[g].first);
+
         } 
     }
     //add some random variables
-    for (int i = 0; i < g_variable_domain.size(); i += 10) {
+    for (int i = 0; i < g_variable_domain.size(); i += 8) {
         int g = rand() % g_variable_domain.size();
-        bool exists = false;
-        for (auto& p : pat) {
-            if (p == g) {
-                exists = true;
+        if (g_variable_domain[g] < 20) {
+            bool exists = false;
+            for (auto& p : pat) {
+                if (p == g) {
+                    exists = true;
+                }
             }
+            if (!exists) {
+                pat.push_back(g);
+            }
+
         }
-        if (!exists) {
-            pat.push_back(g);
-        }
+
+
         sort(pat.begin(), pat.end());
     }
     return pat;
@@ -435,8 +461,8 @@ vector <vector<int>> PDBHeuristic::find_max_cliques() {
     }
 
     //Delete duplicates.
-    for (size_t i = 0; i < max_cliques.size(); i++) {
-        for (size_t j = i + 1; j < max_cliques.size(); j++) {
+    for ( int i = 0; i < max_cliques.size(); i++) {
+        for ( int j = i + 1; j < max_cliques.size(); j++) {
             if (!max_cliques[i].empty() && !max_cliques[j].empty()) {
                 if (compare_cliques(max_cliques[i], max_cliques[j])) {
                     max_cliques[j].clear();

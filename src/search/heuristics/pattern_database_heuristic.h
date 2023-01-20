@@ -94,7 +94,7 @@ private:
     };
     //data structures for regular pattern collections
     std::vector<std::vector<int>> pattern_collection;
-    std::vector <std::vector<size_t>>N_ind_collection;
+    std::vector <std::vector<int>>N_ind_collection;
     std::vector<std::vector<int> > PDB_collection;
     std::vector<std::vector<int>> applicable_ops_collection;
     std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
@@ -104,21 +104,21 @@ private:
 
     //functions for normal PDB
     void Dijkstra(int ind);
-    int unrank(size_t r, int var, int ind);
-    size_t rank(std::vector <int>& s, int ind);
-    size_t rankState(const State& state, int ind);
+    int unrank(int r, int var, int ind);
+    int rank(std::vector <int>& s, int ind);
+    int rankState(const State& state, int ind);
     bool goal_test(std::vector <int>& s, std::vector <int>& pat);
     bool op_applicable(int op, std::vector<int>& s, std::vector <int>& pat);
     void computePDB();
-    void apply_operation(int op, std::vector <int>& s, std::vector<int>& pat);
+    std::vector<int> apply_operation(int op, std::vector <int> s, std::vector<int>& pat);
     std::vector <int> naive_pattern_selection();
 
 
     //For canonical heuristic and orthogonality
     void create_orthogonality_graph();
     std::vector <int > check_applicable_ops(std::vector <int>& pat);
-    std::vector<std::vector<int>> find_max_cliques();
     bool is_clique(std::unordered_set<int>& set);
+    std::vector<std::vector<int>> find_max_cliques();
     std::vector <int> find_adjoinable_vertex(std::unordered_set<int> Q);
     bool compare_cliques(std::unordered_set<int>& A, std::unordered_set <int>& B);
     std::vector<std::vector<bool>> orthogonality_graph;
