@@ -29,7 +29,7 @@ int PDBHeuristic::unrank(int r, int var, int ind) {
 int PDBHeuristic::rankState(const State& state, int ind) {
     int sum = 0;
     for (auto& i : pattern_collection[ind]) {
-        int temp = state[i];
+        int temp = state[i];//for debugging
         sum += N_ind_collection[ind][i] * temp;
     }
     return sum;
@@ -113,16 +113,16 @@ void PDBHeuristic::computePDB() {
             N_ind_collection[count][i] = N;
             N *= g_variable_domain[i]; 
         }
-        N_ind[count] = N;
+        N_ind[count] = N; //For a pattern, this is the number of states in the abstract state space
         count++;
     }
 
 
     //Init PDB with -1 for all available patterns
     for (size_t i = 0; i < pattern_collection.size(); i++) {
-        vector<int> s(N_ind[i]);
-        fill(s.begin(), s.end(), -1);
-        PDB_collection.push_back(s);
+        vector<int> abstract_space_vec(N_ind[i]);
+        fill(abstract_space_vec.begin(), abstract_space_vec.end(), -1);
+        PDB_collection.push_back(abstract_space_vec);
     }
 
     //Find applicable operations for each pattern
@@ -131,29 +131,29 @@ void PDBHeuristic::computePDB() {
     }
     int ind = 0;
     for (auto& pat : pattern_collection) {
-        vector <int> s(g_variable_domain.size());
+        vector <int> abstract_state(g_variable_domain.size());
 
 
         //For a pattern iterate over all states (represended as index)
-        for (int r = 0; r < N_ind[ind]; ++r) {
-            //simulate an state
-            for (auto& j : pat) {
-                s[j] = unrank(r, j, ind);
+        for (int state_rank = 0; state_rank < N_ind[ind]; ++state_rank) {
+            //unrank abstract state
+            for (auto& pat_var : pat) {
+                abstract_state[pat_var] = unrank(state_rank, pat_var, ind);
             }
 
-            if (goal_test(s, pat)) {
-                PDB_collection[ind][r] = 0;
-                closed_list_collection[ind].insert(r);
-                list_collection[ind].push(r);
+            if (goal_test(abstract_state, pat)) {
+                PDB_collection[ind][state_rank] = 0;
+                closed_list_collection[ind].insert(state_rank);
+                list_collection[ind].push(state_rank);
             }
             //for (auto& op : applicable_ops_collection[ind]) {
             for(auto &op:applicable_ops_collection[ind]) {
-                if (op_applicable(op, s, pat)) {
-                    vector <int> s2 = s;
-                    apply_operation(op, s2, pat);
+                if (op_applicable(op, abstract_state, pat)) {
+                    vector <int> next_state = abstract_state;
+                    apply_operation(op, next_state, pat);
                     
-                    int r2 = rank(s2, ind);
-                    adjList_collection[ind][r2].insert(r); //The graph is backwards  
+                    int next_state_rank = rank(next_state, ind);
+                    adjList_collection[ind][next_state_rank].insert(state_rank); //The graph is backwards  
 
                 }
             }
