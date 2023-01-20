@@ -22,21 +22,24 @@ PDBHeuristic::PDBHeuristic(const Options& opts)
         opts.get_list<int>("test_pattern") : vector<int>()) {
 
 }
-int PDBHeuristic::unrank(int r, int var, int ind) {
+int PDBHeuristic::unrank(size_t r, int var, int ind) {
     int temp = r / N_ind_collection[ind][var];
-    return temp % g_variable_domain[var];
+    assert(temp >= 0);
+    temp=temp% g_variable_domain[var]; //for debugging
+    return temp;
 }
-int PDBHeuristic::rankState(const State& state, int ind) {
-    int sum = 0;
+size_t PDBHeuristic::rankState(const State& state, int ind) {
+    size_t sum = 0;
     for (auto& i : pattern_collection[ind]) {
         int temp = state[i];//for debugging
         sum += N_ind_collection[ind][i] * temp;
     }
+    assert(sum >= 0);
     return sum;
 }
 
-int PDBHeuristic::rank(vector <int>& s, int ind) {
-    int sum = 0;
+size_t PDBHeuristic::rank(vector <int>& s, int ind) {
+    size_t sum = 0;
     for (auto& i : pattern_collection[ind]) {
         sum += N_ind_collection[ind][i] * s[i];
     }
@@ -102,12 +105,12 @@ void PDBHeuristic::computePDB() {
     N_ind.assign(pattern_collection.size(), 0);
 
 
-    vector <long long int> n_arr(g_variable_domain.size());
+    vector <size_t> n_arr(g_variable_domain.size());
     fill(n_arr.begin(), n_arr.end(), 0);
     int count = 0;
     //N_ind_collection is for unranking and ranking
     for (auto& pat : pattern_collection) {
-        long long int N = 1;
+        size_t N = 1;
         N_ind_collection.push_back(n_arr);
         for (auto& i : pat) {
             N_ind_collection[count][i] = N;
@@ -135,7 +138,7 @@ void PDBHeuristic::computePDB() {
 
 
         //For a pattern iterate over all states (represended as index)
-        for (int state_rank = 0; state_rank < N_ind[ind]; ++state_rank) {
+        for (size_t state_rank = 0; state_rank < N_ind[ind]; ++state_rank) {
             //unrank abstract state
             for (auto& pat_var : pat) {
                 abstract_state[pat_var] = unrank(state_rank, pat_var, ind);
@@ -296,7 +299,7 @@ vector <int> PDBHeuristic::naive_pattern_selection() {
         } 
     }
     //add some random variables
-    for (int i = 0; i < g_variable_domain.size(); i += 6) {
+    for (int i = 0; i < g_variable_domain.size(); i += 10) {
         int g = rand() % g_variable_domain.size();
         bool exists = false;
         for (auto& p : pat) {

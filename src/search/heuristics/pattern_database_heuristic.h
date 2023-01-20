@@ -94,19 +94,19 @@ private:
     };
     //data structures for regular pattern collections
     std::vector<std::vector<int>> pattern_collection;
-    std::vector <std::vector<long long int>>N_ind_collection;
+    std::vector <std::vector<size_t>>N_ind_collection;
     std::vector<std::vector<int> > PDB_collection;
     std::vector<std::vector<int>> applicable_ops_collection;
     std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
     std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
     std::vector<std::queue <int>> list_collection;
-    std::vector <long long int>N_ind;
+    std::vector <size_t>N_ind;
 
     //functions for normal PDB
     void Dijkstra(int ind);
-    int unrank(int r, int var, int ind);
-    int rank(std::vector <int>& s, int ind);
-    int rankState(const State& state, int ind);
+    int unrank(size_t r, int var, int ind);
+    size_t rank(std::vector <int>& s, int ind);
+    size_t rankState(const State& state, int ind);
     bool goal_test(std::vector <int>& s, std::vector <int>& pat);
     bool op_applicable(int op, std::vector<int>& s, std::vector <int>& pat);
     void computePDB();
@@ -120,7 +120,6 @@ private:
     std::vector<std::vector<int>> find_max_cliques();
     bool is_clique(std::unordered_set<int>& set);
     std::vector <int> find_adjoinable_vertex(std::unordered_set<int> Q);
-    //std::unordered_set<int> clique(std::unordered_set<int> set);
     bool compare_cliques(std::unordered_set<int>& A, std::unordered_set <int>& B);
     std::vector<std::vector<bool>> orthogonality_graph;
     std::vector<std::vector<int>> max_cliques_ind;
