@@ -90,6 +90,35 @@ void EnforcedHillClimbingSearch::get_applicable_operators(const State& state,
 #endif
 }
 
+// Combinations without order, with duplicates 
+std::vector<std::vector<int>> getCombinations(int n, int depth) {
+    std::vector<std::vector<int>> combinations;
+    if (depth == 0) {
+        combinations.push_back({});
+        return combinations;
+    }
+    for (int i = 0; i < n; i++) {
+        std::vector<std::vector<int>> subcombinations = getCombinations(n, depth - 1);
+        for (auto& subcombination : subcombinations) {
+            subcombination.push_back(i);
+            std::sort(subcombination.begin(), subcombination.end());
+            if (std::find(combinations.begin(), combinations.end(), subcombination) == combinations.end()) {
+                combinations.push_back(subcombination);
+            }
+        }
+    }
+    return combinations;
+}
+
+// Order the possible clause learning:
+//  clausels are first learned if they are closer it is to the problem.
+bool compareVectors(const std::vector<int>& a, const std::vector<int>& b) {
+    int sumA = 0;
+    for (int x : a) sumA += x;
+    int sumB = 0;
+    for (int x : b) sumB += x;
+    return sumA > sumB;
+}
 
 // this function is called only once for the input planning task.
 // if current_state is a goal state, search will break out of the while loop,
@@ -152,7 +181,12 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
     std::vector<const Operator*> current_plan; // the plan for current_state
     std::vector<StateID> opend;
     std::vector<StateID> dead_ends;
+    std::vector<std::vector<int>> clausels;
+    std::vector<StateID> clausel;
+    std::deque<StateID> state_plan;
+    bool clause_learning_failed = false;
 
+    state_plan = {};
     open_list.push_back(current_state.get_id());
     plans.push_back(plan);
 
@@ -178,13 +212,17 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 } 
                 else if (heuristic->get_heuristic() < current_h) {
                     opend.clear();
-                    opend = dead_ends;
+                    opend.insert(opend.end(), clausel.begin(), clausel.end());
+                    opend.insert(opend.end(), dead_ends.begin(), dead_ends.end());
                     current_g = plan.size() + current_plan.size();
                     current_h = heuristic->get_heuristic(); // update current_h
                     open_list.clear();
                     plans.clear();
                     open_list.push_front(next_state.get_id()); // best_state will be expanded as next
+                    state_plan.push_back(current_state.get_id());
                     plans.push_front(current_plan);
+                    clause_learning_failed = false;
+                    clausel.clear();
                     if (test_goal(next_state)) { // next_state is goal state
                         for (int j = 0; j < current_plan.size(); j++) {
                             plan.push_back(current_plan[j]);
@@ -202,7 +240,36 @@ SearchStatus EnforcedHillClimbingSearch::hill_climbing()
                 current_plan.pop_back(); // reset plan to current_state plan.
             }
         }
+        if (open_list.empty()) { // Idea of AI Course 1, clause learning to make this ehc compatible with every domain.
+            //cout << clausels << endl;
+            if (clause_learning_failed) {
+                return FAILED;
+            }
+            if (clausels.empty()) {
+                clausels = getCombinations(state_plan.size(), state_plan.size());
+                std::sort(clausels.begin(), clausels.end(), compareVectors);
+                clause_learning_failed = true;
+            }
+            for (int i = 0; i < state_plan.size(); i++) {
+                clausel.clear();
+                clausel.push_back(state_plan[clausels.back()[i]]);
+            }
+            //cout << "__" << endl;
+            clausels.pop_back();
+            plan.clear();
+            plans.clear();
+            plans.push_back(plan);
+            open_list.clear();
+            open_list.push_back(g_initial_state().get_id());
+            state_plan.clear();
+            opend.clear();
+            opend.insert(opend.end(), clausel.begin(), clausel.end());
+            opend.insert(opend.end(), dead_ends.begin(), dead_ends.end());
+
+        }
+
     }
+
     return FAILED;
 }
 
