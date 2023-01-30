@@ -12,11 +12,11 @@ ALIASES["goal-count"] = ["--search", "wastar(gc())"]
 # you can test this alias by running 
 # ./fast-downward.py --alias competition <problem-file>
 # please enter empty strings if you do not want to submit 4 planners
-ALIASES["optimal_1"] = ["TODO: insert your configuration here"]
-ALIASES["optimal_2"] = ["TODO: insert your configuration here"]
+ALIASES["optimal_1"] = ["--search", "wastar(pdb())"]
+ALIASES["optimal_2"] = ["--search", "wastar(hmax())"]
 
-ALIASES["satisficing_1"] = ["TODO: insert your configuration here"]
-ALIASES["satisficing_2"] = ["TODO: insert your configuration here"]
+ALIASES["satisficing_1"] = ["--search", "ehc(ff())"]
+ALIASES["satisficing_2"] = ["--search", "ehc(hmax())"]
 
 
 def show_aliases():
