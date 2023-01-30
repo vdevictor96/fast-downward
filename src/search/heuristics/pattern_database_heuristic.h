@@ -124,6 +124,7 @@ private:
     std::vector<std::vector<bool>> orthogonality_graph;
     std::vector<std::vector<int>> max_cliques_ind;
     std::vector<std::unordered_set<int>> expand_clique(std::unordered_set<int>Q);
+    std::vector<std::vector<int>>disjoint_pattern_selection();
 
 
 

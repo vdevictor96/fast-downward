@@ -186,44 +186,27 @@ void PDBHeuristic::initialize()
     }
     else {
         // Use automatic method
-        
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
 
+        vector<vector<int>> temp_col;
+        for (int i = 0; i < 10; i++) {
+            temp_col= disjoint_pattern_selection();
+            for (auto& pat : temp_col) {
+                pattern_collection.push_back(pat);
+            }
+        }
+
+        /*
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        pattern_collection.push_back(naive_pattern_selection());
+        */
 
         
 
@@ -297,6 +280,52 @@ int PDBHeuristic::compute_heuristic(const State& state)
 
 
 }
+vector<vector<int>>PDBHeuristic::disjoint_pattern_selection() {
+    unordered_set<int> var_set;
+    vector<unordered_set<int>> pat_sel;
+    for (int var = 0; var < g_variable_domain.size(); var++) {
+        var_set.insert(var);
+    }
+    for (auto& goal : g_goal) {
+        pat_sel.push_back({ goal.first });
+   
+    }
+    int count = 0;
+    while (!var_set.empty()&&count<10) {
+        int var = rand() % g_variable_domain.size();
+        if (var_set.find(var) != var_set.end()) {
+            int pat_ind = rand() % pat_sel.size();
+            var_set.erase(var);
+            pat_sel[pat_ind].insert(var);
+            int temp = count;
+            count = 0;
+            int n_dom = 1;
+            for (auto var_dom : pat_sel[pat_ind]) {
+                n_dom *= g_variable_domain[var_dom];
+            }
+            if (n_dom > 5000) {// This controls the search space for a pattern
+                pat_sel[pat_ind].erase(var);
+                count = temp; //Terminate after a number of attempts
+                count++;
+                if (g_variable_domain[var] < 500) { //Make sure the domain is not huge
+                    var_set.insert(var);
+                }
+            }
+
+        }
+    }
+    vector<vector<int>> pat_vec;
+    for (auto& set : pat_sel) {
+        vector <int> pat;
+        for (auto& var : set) {
+            pat.push_back(var);
+        }
+        pat_vec.push_back(pat);
+    }
+    return pat_vec;
+}
+
+
 
 vector <int> PDBHeuristic::naive_pattern_selection() {
     vector <int> pat;
