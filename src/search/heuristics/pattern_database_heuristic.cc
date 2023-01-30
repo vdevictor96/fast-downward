@@ -188,12 +188,17 @@ void PDBHeuristic::initialize()
         // Use automatic method
 
         vector<vector<int>> temp_col;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 20; i++) {
             temp_col= disjoint_pattern_selection();
             for (auto& pat : temp_col) {
+                sort(pat.begin(), pat.end()); //for comparison
+
                 pattern_collection.push_back(pat);
             }
         }
+        auto result=unique(pattern_collection.begin(), pattern_collection.end());
+        pattern_collection.erase(result, pattern_collection.end());
+      
 
         /*
         pattern_collection.push_back(naive_pattern_selection());
@@ -297,16 +302,13 @@ vector<vector<int>>PDBHeuristic::disjoint_pattern_selection() {
             int pat_ind = rand() % pat_sel.size();
             var_set.erase(var);
             pat_sel[pat_ind].insert(var);
-            int temp = count;
-            count = 0;
             int n_dom = 1;
             for (auto var_dom : pat_sel[pat_ind]) {
                 n_dom *= g_variable_domain[var_dom];
             }
             if (n_dom > 5000) {// This controls the search space for a pattern
-                pat_sel[pat_ind].erase(var);
-                count = temp; //Terminate after a number of attempts
-                count++;
+                pat_sel[pat_ind].erase(var); 
+                count++;//Terminate after a number of attempts
                 if (g_variable_domain[var] < 500) { //Make sure the domain is not huge
                     var_set.insert(var);
                 }
