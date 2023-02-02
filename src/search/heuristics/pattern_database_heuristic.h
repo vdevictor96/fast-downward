@@ -95,7 +95,7 @@ private:
     //data structures for regular pattern collections
     std::vector<std::vector<int>> pattern_collection;
     std::vector <std::vector<int>>N_ind_collection;
-    std::vector<std::vector<int> > PDB_collection;
+    std::vector<std::vector<float> > PDB_collection;
     std::vector<std::vector<int>> applicable_ops_collection;
     std::vector <std::unordered_set <int, hashFunction, compare>> closed_list_collection;
     std::vector <std::unordered_map <int, std::unordered_set <int, hashFunction, compare>>> adjList_collection;
@@ -125,6 +125,10 @@ private:
     std::vector<std::vector<int>> max_cliques_ind;
     std::vector<std::unordered_set<int>> expand_clique(std::unordered_set<int>Q);
     std::vector<std::vector<int>>disjoint_pattern_selection();
+    std::vector<std::vector<int>> create_causal_graph();
+    std::vector<std::vector<int>> causal_graph;
+    int ran_causal_relevant(std::unordered_set<int>& pat_set, std::unordered_set<int>& var_set);
+    std::unordered_set <int> var_set;
 
 
 

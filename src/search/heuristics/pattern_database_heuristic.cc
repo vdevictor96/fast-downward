@@ -123,8 +123,8 @@ void PDBHeuristic::computePDB() {
 
     //Init PDB with -1 for all available patterns
     for ( int i = 0; i < pattern_collection.size(); i++) {
-        vector<int> abstract_space_vec(N_ind[i]+1);
-        fill(abstract_space_vec.begin(), abstract_space_vec.end(), -1);
+        vector<float> abstract_space_vec(N_ind[i]+1);
+        fill(abstract_space_vec.begin(), abstract_space_vec.end(), -1.0);
         PDB_collection.push_back(abstract_space_vec);
     }
 
@@ -186,9 +186,21 @@ void PDBHeuristic::initialize()
     }
     else {
         // Use automatic method
+        
+
+        causal_graph = create_causal_graph();
 
         vector<vector<int>> temp_col;
-        for (int i = 0; i < 20; i++) {
+
+        int temp = (20/g_goal.size()) + 1;
+
+        for (int i = 0; i < temp; i++) {
+            if (var_set.size() < (g_variable_domain.size() / 4)) { //Reuse var_set until 2/3 are used
+                var_set.clear();
+                for (int i = 0; i < g_variable_domain.size(); i++) {
+                    var_set.insert(i);
+                }
+            }
             temp_col= disjoint_pattern_selection();
             for (auto& pat : temp_col) {
                 sort(pat.begin(), pat.end()); //for comparison
@@ -196,33 +208,24 @@ void PDBHeuristic::initialize()
                 pattern_collection.push_back(pat);
             }
         }
-        auto result=unique(pattern_collection.begin(), pattern_collection.end());
-        pattern_collection.erase(result, pattern_collection.end());
+
+        for (int i = 0; i < pattern_collection.size(); i++) {
+            for (int j = i + 1; j < pattern_collection.size(); j++) {
+                if (pattern_collection[i] == pattern_collection[j]) {
+                    pattern_collection.erase(pattern_collection.begin() + j);
+                }
+            }
+        }
       
-
-        /*
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        pattern_collection.push_back(naive_pattern_selection());
-        */
-
-        
-
-
-        
+       
 
         computePDB();
+        /*
         if (pattern_collection.size() > 1) {
             create_orthogonality_graph();
             max_cliques_ind = find_max_cliques();
         }
+        */
         
 
     }
@@ -245,6 +248,10 @@ void PDBHeuristic::Dijkstra(int ind) { //This is actual breadth-first search wit
         list_collection[ind].pop();
             
     }
+    for (auto& abstract_state : PDB_collection[ind]) {
+        abstract_state =abstract_state/ pattern_collection.size();
+    }
+
 }
 
 
@@ -255,6 +262,20 @@ int PDBHeuristic::compute_heuristic(const State& state)
         pattern_rank.push_back(rankState(state, i));
     }
 
+
+    float sum = 0;
+    float h;
+    for (int pat_ind= 0; pat_ind < pattern_collection.size(); pat_ind++) {
+        h = PDB_collection[pat_ind][pattern_rank.at(pat_ind)];
+        sum += h;
+        if (h < 0) {
+            return DEAD_END;
+        }
+    }
+
+    return static_cast <int>(sum);
+
+    /*
     //standard PDB with one pattern
     if (pattern_collection.size() == 1) {
         return PDB_collection[0][pattern_rank[0]];
@@ -282,39 +303,70 @@ int PDBHeuristic::compute_heuristic(const State& state)
         }
         return max;
     }
+        */
+    
 
 
 }
-vector<vector<int>>PDBHeuristic::disjoint_pattern_selection() {
-    unordered_set<int> var_set;
-    vector<unordered_set<int>> pat_sel;
-    for (int var = 0; var < g_variable_domain.size(); var++) {
-        var_set.insert(var);
+int PDBHeuristic::ran_causal_relevant(unordered_set<int> &pat_set, unordered_set<int> &var_set) {
+    set<int>temp;
+    set<int> intersect;
+    for (auto& pat_var : pat_set) {
+        for (auto& var_cg : causal_graph[pat_var]) {
+            temp.insert(var_cg); //list all causal relevant variables for given pattern
+        }
     }
+
+    set_intersection(temp.begin(), temp.end(), var_set.begin(), var_set.end(), inserter(intersect, intersect.begin()));
+    int ran = rand() % intersect.size();
+    if (intersect.size() == 0) {
+        return -1;
+    }
+    else {
+        int count = 0;
+        for (auto& var : intersect) {
+            if (count == ran) {
+                return var;
+            }
+            count++;
+        }
+    }
+    return -1;
+
+}
+
+vector<vector<int>>PDBHeuristic::disjoint_pattern_selection() {
+    vector<unordered_set<int>> pat_sel;
+
     for (auto& goal : g_goal) {
         pat_sel.push_back({ goal.first });
-   
+        var_set.erase(goal.first);
     }
+
     int count = 0;
-    while (!var_set.empty()&&count<10) {
-        int var = rand() % g_variable_domain.size();
-        if (var_set.find(var) != var_set.end()) {
-            int pat_ind = rand() % pat_sel.size();
-            var_set.erase(var);
-            pat_sel[pat_ind].insert(var);
+    while (count<10) {
+        int pat_ind = rand() % pat_sel.size(); //choose random pattern
+
+
+        int add_var = ran_causal_relevant(pat_sel[pat_ind], var_set);
+
+        if (add_var != -1) {
+            pat_sel[pat_ind].insert(add_var);
             int n_dom = 1;
             for (auto var_dom : pat_sel[pat_ind]) {
                 n_dom *= g_variable_domain[var_dom];
             }
-            if (n_dom > 5000) {// This controls the search space for a pattern
-                pat_sel[pat_ind].erase(var); 
-                count++;//Terminate after a number of attempts
-                if (g_variable_domain[var] < 500) { //Make sure the domain is not huge
-                    var_set.insert(var);
-                }
+            if (n_dom > 3000) {
+                pat_sel[pat_ind].erase(add_var);
+  
+                count++;
             }
-
+            else {
+                var_set.erase(add_var);
+            }
         }
+        else { count++; }
+
     }
     vector<vector<int>> pat_vec;
     for (auto& set : pat_sel) {
@@ -327,6 +379,38 @@ vector<vector<int>>PDBHeuristic::disjoint_pattern_selection() {
     return pat_vec;
 }
 
+vector<vector<int>> PDBHeuristic::create_causal_graph() {
+    vector<unordered_set<int>> ad_ls_cg; //Backwards causal graph
+    for (int i = 0; i < g_variable_domain.size(); i++) {
+        ad_ls_cg.push_back({}); //Init vector in the size of variables
+    }
+    for (auto& op : g_operators) {
+        for (auto& pre : op.get_preconditions()) {
+            for (auto& eff : op.get_effects()) {
+                if (pre.var != eff.var) {
+                    ad_ls_cg[eff.var].insert(pre.var);
+                } 
+            }
+        }
+        for (auto& eff1 : op.get_effects()) {
+            for (auto& eff2 : op.get_effects()) {
+                if (eff1.var != eff2.var) {
+                    ad_ls_cg[eff1.var].insert(eff2.var);
+                }
+            }
+        }
+
+    }
+    vector<vector<int>> cg;
+    for (int i = 0; i < g_variable_domain.size(); i++) {
+        vector<int> temp;
+        for (auto& var : ad_ls_cg[i]) {
+            temp.push_back(var);
+        }
+        cg.push_back(temp);
+    }
+    return cg;
+}
 
 
 vector <int> PDBHeuristic::naive_pattern_selection() {
