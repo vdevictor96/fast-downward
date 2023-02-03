@@ -1,0 +1,4 @@
+optimal_1: Abstract dat;
+optimal_2: Mo costs mo problems;
+satisficing_1: Aus'm Effeff;
+satsificing_2: Round about maximal;
