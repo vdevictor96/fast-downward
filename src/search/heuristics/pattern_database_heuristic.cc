@@ -191,8 +191,12 @@ void PDBHeuristic::initialize()
         causal_graph = create_causal_graph();
 
         vector<vector<int>> temp_col;
-
-        int temp = (20/g_goal.size()) + 1;
+        int temp = 1;
+        if (g_goal.size() >= 1) {
+            int temp = (20 / g_goal.size()) + 1;
+        }
+ 
+        
 
         for (int i = 0; i < temp; i++) {
             if (var_set.size() < (g_variable_domain.size() / 4)) { //Reuse var_set until 2/3 are used
@@ -318,11 +322,11 @@ int PDBHeuristic::ran_causal_relevant(unordered_set<int> &pat_set, unordered_set
     }
 
     set_intersection(temp.begin(), temp.end(), var_set.begin(), var_set.end(), inserter(intersect, intersect.begin()));
-    int ran = rand() % intersect.size();
     if (intersect.size() == 0) {
         return -1;
     }
     else {
+        int ran = rand() % intersect.size();
         int count = 0;
         for (auto& var : intersect) {
             if (count == ran) {
